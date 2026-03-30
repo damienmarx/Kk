@@ -1,21 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { CorrelationEngine } from './components/CorrelationEngine';
-import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2 } from 'lucide-react';
+import { CaseManagement } from './components/CaseManagement';
+import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useTracking } from './lib/tracking';
+import { useCases } from './lib/cases';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   
   const { trackedTargets, alerts, trackTarget, untrackTarget, updateTargetInterval, setAlerts } = useTracking();
+  const { activeCase, addTargetToCase } = useCases();
 
   useEffect(() => {
     // Expose trackTarget to window for cross-component access
-    (window as any).trackTarget = trackTarget;
-  }, [trackTarget]);
+    (window as any).trackTarget = (name: string) => {
+      const targetId = trackTarget(name);
+      if (activeCase && targetId) {
+        addTargetToCase(activeCase.id, targetId);
+      }
+    };
+  }, [trackTarget, activeCase, addTargetToCase]);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#F27D26] selection:text-black">
@@ -37,6 +45,12 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-6">
+          {activeCase && (
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-[#F27D26]/10 border border-[#F27D26]/20 rounded-full">
+              <Briefcase size={12} className="text-[#F27D26]" />
+              <span className="text-[10px] font-mono text-[#F27D26] uppercase tracking-widest font-bold">Active Case: {activeCase.name}</span>
+            </div>
+          )}
           <div className="relative">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
@@ -112,6 +126,7 @@ export default function App() {
             {[
               { id: 'dashboard', icon: Activity, label: 'Intel Dashboard' },
               { id: 'chat', icon: Terminal, label: 'AI Command' },
+              { id: 'cases', icon: Briefcase, label: 'Case Files' },
             ].map((item) => (
               <button
                 key={item.id}
@@ -204,10 +219,12 @@ export default function App() {
           <div className="relative z-10 h-full">
             {activeTab === 'dashboard' ? (
               <CorrelationEngine />
-            ) : (
+            ) : activeTab === 'chat' ? (
               <div className="p-6 h-full">
                 <Chat />
               </div>
+            ) : (
+              <CaseManagement />
             )}
           </div>
         </main>

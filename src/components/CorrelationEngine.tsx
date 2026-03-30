@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity } from 'lucide-react';
+import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity, Mail, Share2, Users } from 'lucide-react';
 import { analyzeImage, complexReasoning, generateIntel, models } from '../lib/gemini';
 import { cn } from '../lib/utils';
 import { exportToText, exportToPDF, exportToJSON, exportToCSV } from '../lib/export';
@@ -18,6 +18,8 @@ export function CorrelationEngine() {
   const [scenario, setScenario] = useState('');
   const [vulnAnalysis, setVulnAnalysis] = useState<string | null>(null);
   const [isAnalyzingVuln, setIsAnalyzingVuln] = useState(false);
+  const [emailData, setEmailData] = useState('');
+  const [isAnalyzingEmail, setIsAnalyzingEmail] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -48,22 +50,22 @@ export function CorrelationEngine() {
     if (!targetId.trim()) return;
     setIsGeneratingIntel(true);
     try {
-      const prompt = `Perform a deep cross-correlation analysis for the target: "${targetId}". 
+      const prompt = `Perform a deep, compact, but very detailed OSINT dossier for the target: "${targetId}". 
       Search across:
       - Google (using search grounding)
-      - OSRS Highscores / Wise Old Man
-      - Runehall betting logs
-      - Twitter/Twitch/Discord mentions
+      - Social Media (Twitter, LinkedIn, Facebook, Instagram, Reddit)
+      - OSRS Highscores / Wise Old Man / Runehall betting logs
+      - Underground forums (Sythe, Powerbot, HackForums, Nulled)
       - Web Archives (Wayback Machine)
-      - Underground forums (Sythe, Powerbot, etc.)
       - .onion site dorks
+      - Leaked databases (check for email/username mentions)
       
-      Structure the report with:
-      1. Executive Summary
-      2. Identified Platforms
-      3. Cross-Platform Correlations
-      4. Activity Timeline
-      5. Risk Assessment`;
+      Structure the dossier with:
+      1. TARGET PROFILE (Aliases, PII if found, Social footprints)
+      2. DIGITAL FOOTPRINT (Forum activity, Gaming history, Social media links)
+      3. CROSS-PLATFORM CORRELATIONS (How accounts are linked)
+      4. FINANCIAL/TRANSACTIONAL INTEL (Crypto, OSRS GP, Runehall patterns)
+      5. RISK & VULNERABILITY ASSESSMENT`;
 
       const response = await generateIntel(prompt, models.flash, [{ googleSearch: {} }]);
       setIntelReport(response.text || "No intel found.");
@@ -84,9 +86,10 @@ export function CorrelationEngine() {
     if (!targetId.trim()) return;
     setIsDeepThinking(true);
     try {
-      const result = await complexReasoning(`Perform an exhaustive, high-thinking cross-correlation for: "${targetId}". 
-      Focus on hidden connections, potential aliases, and technical footprints across OSRS, Runehall, and underground forums. 
-      Analyze the provided context about Runehall's logic flaws and see if this target exhibits patterns of exploitation.`);
+      const result = await complexReasoning(`Perform an exhaustive, high-thinking cross-correlation and dossier build for: "${targetId}". 
+      Focus on hidden connections, potential aliases, and technical footprints across OSRS, Runehall, Sythe, and various social media platforms. 
+      Analyze the provided context about Runehall's logic flaws and see if this target exhibits patterns of exploitation.
+      Identify any potential real-world identities or high-confidence links between underground personas and public profiles.`);
       setIntelReport(result);
     } catch (error) {
       console.error(error);
@@ -125,6 +128,16 @@ export function CorrelationEngine() {
           prompt = `Generate specific .onion dorks and search patterns to find mentions of "${targetId}" on underground marketplaces or forums. 
           Do not provide live links to illegal content, only the search methodology.`;
           break;
+        case 'social':
+          prompt = `Correlate the alias/target "${targetId}" across major social media platforms (Twitter, Instagram, LinkedIn, Reddit). 
+          Look for matching profile pictures, bios, or shared links that confirm identity overlap.`;
+          tools = [{ googleSearch: {} }];
+          break;
+        case 'sythe':
+          prompt = `Search for "${targetId}" on Sythe.org and other RS trading forums. 
+          Look for vouch threads, trade history, and any reports of scamming or high-value transactions.`;
+          tools = [{ googleSearch: {} }];
+          break;
       }
 
       const response = await generateIntel(prompt, models.flash, tools);
@@ -159,6 +172,30 @@ export function CorrelationEngine() {
       setVulnAnalysis("Error during vulnerability analysis.");
     } finally {
       setIsAnalyzingVuln(false);
+    }
+  };
+
+  const runEmailAnalysis = async () => {
+    if (!emailData.trim()) return;
+    setIsAnalyzingEmail(true);
+    try {
+      const prompt = `Analyze the following email data (headers or content) for OSINT insights:
+      
+      "${emailData}"
+      
+      Extract and analyze:
+      1. Sender Identity & Reputation
+      2. Originating IP & Geolocation (if headers provided)
+      3. Mail Server Infrastructure (SPF, DKIM, DMARC status)
+      4. Potential Phishing or Social Engineering indicators
+      5. Links to known underground personas or leaked databases`;
+      
+      const response = await generateIntel(prompt, models.flash, [{ googleSearch: {} }]);
+      setIntelReport(prev => (prev ? prev + `\n\n---\n## [EMAIL ANALYSIS REPORT]\n${response.text}` : response.text || ""));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzingEmail(false);
     }
   };
 
@@ -266,6 +303,36 @@ export function CorrelationEngine() {
           )}
         </div>
 
+        {/* Email Analysis Lab */}
+        <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-500/10 rounded border border-blue-500/20">
+              <Mail size={20} className="text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-sm font-mono uppercase tracking-widest text-white">Email Intelligence</h2>
+              <p className="text-[10px] text-white/40 font-mono">HEADER & CONTENT ANALYZER</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <textarea
+              value={emailData}
+              onChange={(e) => setEmailData(e.target.value)}
+              placeholder="Paste email headers or content for analysis..."
+              className="w-full bg-[#151619] border border-[#141414] rounded p-3 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors font-mono placeholder:text-white/20 min-h-[100px] resize-none"
+            />
+            <button
+              onClick={runEmailAnalysis}
+              disabled={isAnalyzingEmail || !emailData.trim()}
+              className="w-full bg-blue-600 text-white font-mono text-xs py-3 rounded uppercase font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isAnalyzingEmail ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Analyze Email Intel
+            </button>
+          </div>
+        </div>
+
         {/* Quick Dorking / Tools */}
         <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
           <h2 className="text-xs font-mono uppercase tracking-widest text-white/70 mb-4">Intelligence Tools</h2>
@@ -275,6 +342,8 @@ export function CorrelationEngine() {
               { id: 'osrs', icon: Database, label: "OSRS Highscores", color: "text-green-400" },
               { id: 'crypto', icon: Hash, label: "Crypto Explorer", color: "text-yellow-400" },
               { id: 'onion', icon: Shield, label: "Onion Dorks", color: "text-purple-400" },
+              { id: 'social', icon: Share2, label: "Social Media", color: "text-pink-400" },
+              { id: 'sythe', icon: Users, label: "Sythe/Forums", color: "text-orange-400" },
             ].map((tool, i) => (
               <button 
                 key={i} 

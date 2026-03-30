@@ -21,7 +21,9 @@ export function useTracking() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
   const trackTarget = (name: string, interval: number = 5) => {
-    if (trackedTargets.find(t => t.name === name)) return;
+    const existing = trackedTargets.find(t => t.name === name);
+    if (existing) return existing.id;
+    
     const newTarget: TrackedTarget = { 
       id: Math.random().toString(36).substr(2, 9), 
       name, 
@@ -29,6 +31,7 @@ export function useTracking() {
       interval 
     };
     setTrackedTargets(prev => [...prev, newTarget]);
+    return newTarget.id;
   };
 
   const updateTargetInterval = (id: string, interval: number) => {

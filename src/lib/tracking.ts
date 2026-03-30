@@ -25,6 +25,7 @@ export function useTracking() {
     const saved = localStorage.getItem('aegis_alerts');
     return saved ? JSON.parse(saved) : [];
   });
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('aegis_tracked_targets', JSON.stringify(trackedTargets));
@@ -81,6 +82,12 @@ export function useTracking() {
             const response = await generateIntel(prompt, models.lite);
             const finding = response.text?.trim() || "NONE";
 
+            if (finding.includes("[OFFLINE HEURISTICS ACTIVE]")) {
+              setIsOfflineMode(true);
+            } else if (finding !== "NONE") {
+              setIsOfflineMode(false);
+            }
+
             if (finding !== "NONE") {
               const newAlert: Alert = {
                 id: Math.random().toString(36).substr(2, 9),
@@ -111,5 +118,5 @@ export function useTracking() {
     return () => clearInterval(intervalId);
   }, [trackedTargets.length]); // Only re-run if the number of targets changes
 
-  return { trackedTargets, alerts, trackTarget, untrackTarget, updateTargetInterval, setAlerts };
+  return { trackedTargets, alerts, trackTarget, untrackTarget, updateTargetInterval, setAlerts, isOfflineMode };
 }

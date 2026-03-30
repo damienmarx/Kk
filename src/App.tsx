@@ -15,7 +15,7 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   
-  const { trackedTargets, alerts, trackTarget, untrackTarget, updateTargetInterval, setAlerts } = useTracking();
+  const { trackedTargets, alerts, trackTarget, untrackTarget, updateTargetInterval, setAlerts, isOfflineMode } = useTracking();
   const { activeCase, addTargetToCase } = useCases();
 
   useEffect(() => {
@@ -122,8 +122,8 @@ export default function App() {
               <span>Node: US-EAST-1</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#F27D26]" />
-              <span>Gemini 3.1 Pro Active</span>
+              <div className={cn("w-1.5 h-1.5 rounded-full", isOfflineMode ? "bg-yellow-500 animate-pulse" : "bg-[#F27D26]")} />
+              <span>{isOfflineMode ? "Offline Heuristics Active" : "Gemini 3.1 Pro Active"}</span>
             </div>
           </div>
           <div className="h-8 w-[1px] bg-[#141414]" />

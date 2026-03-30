@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target } from 'lucide-react';
+import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity } from 'lucide-react';
 import { analyzeImage, complexReasoning, generateIntel, models } from '../lib/gemini';
 import { cn } from '../lib/utils';
-import { exportToText, exportToPDF } from '../lib/export';
+import { exportToText, exportToPDF, exportToJSON, exportToCSV } from '../lib/export';
 import ReactMarkdown from 'react-markdown';
 
 export function CorrelationEngine() {
@@ -15,6 +15,9 @@ export function CorrelationEngine() {
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [isDeepThinking, setIsDeepThinking] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [scenario, setScenario] = useState('');
+  const [vulnAnalysis, setVulnAnalysis] = useState<string | null>(null);
+  const [isAnalyzingVuln, setIsAnalyzingVuln] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -135,6 +138,30 @@ export function CorrelationEngine() {
     }
   };
 
+  const runVulnAnalysis = async () => {
+    if (!scenario.trim()) return;
+    setIsAnalyzingVuln(true);
+    try {
+      const prompt = `Analyze the following betting scenario for vulnerabilities on the Runehall platform:
+      
+      Scenario: "${scenario}"
+      
+      Known Vulnerabilities to consider:
+      - Logic Flaw at /games/roulette/bet (Negative Bet, Integer Overflow, Type Juggling)
+      - Race Condition (TOCTOU) in balance verification
+      
+      Provide a technical assessment of whether this scenario could trigger an exploit and what the potential impact would be.`;
+      
+      const result = await complexReasoning(prompt);
+      setVulnAnalysis(result);
+    } catch (error) {
+      console.error(error);
+      setVulnAnalysis("Error during vulnerability analysis.");
+    } finally {
+      setIsAnalyzingVuln(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
       {/* OCR & Upload Module */}
@@ -149,6 +176,7 @@ export function CorrelationEngine() {
               <p className="text-[10px] text-white/40 font-mono">OCR / IMAGE ANALYSIS MODULE</p>
             </div>
           </div>
+          {/* ... existing upload code ... */}
 
           <div 
             className={cn(
@@ -188,6 +216,50 @@ export function CorrelationEngine() {
               <div className="prose prose-invert prose-xs max-w-none">
                 <ReactMarkdown>
                   {analysis}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Vulnerability Lab */}
+        <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-red-500/10 rounded border border-red-500/20">
+              <Activity size={20} className="text-red-500" />
+            </div>
+            <div>
+              <h2 className="text-sm font-mono uppercase tracking-widest text-white">Vulnerability Lab</h2>
+              <p className="text-[10px] text-white/40 font-mono">RUNEHALL EXPLOIT ANALYZER</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <textarea
+              value={scenario}
+              onChange={(e) => setScenario(e.target.value)}
+              placeholder="Input betting scenario (e.g., 'Negative bet of -100M on roulette with concurrent balance check')..."
+              className="w-full bg-[#151619] border border-[#141414] rounded p-3 text-xs text-white focus:outline-none focus:border-red-500 transition-colors font-mono placeholder:text-white/20 min-h-[100px] resize-none"
+            />
+            <button
+              onClick={runVulnAnalysis}
+              disabled={isAnalyzingVuln || !scenario.trim()}
+              className="w-full bg-red-600 text-white font-mono text-xs py-3 rounded uppercase font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isAnalyzingVuln ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+              Analyze Exploit Potential
+            </button>
+          </div>
+
+          {vulnAnalysis && (
+            <div className="mt-6 p-4 bg-[#151619] border border-[#141414] rounded text-xs font-mono text-white/70 leading-relaxed max-h-[300px] overflow-y-auto">
+              <div className="flex items-center gap-2 mb-2 text-red-500">
+                <AlertTriangle size={14} />
+                <span className="uppercase tracking-tighter">Vulnerability Assessment</span>
+              </div>
+              <div className="prose prose-invert prose-xs max-w-none">
+                <ReactMarkdown>
+                  {vulnAnalysis}
                 </ReactMarkdown>
               </div>
             </div>
@@ -246,6 +318,24 @@ export function CorrelationEngine() {
                 title="Export as Text"
               >
                 <FileText size={14} />
+              </button>
+              <button 
+                onClick={() => exportToJSON(`intel_report_${targetId}`, {
+                  target: targetId,
+                  timestamp: new Date().toISOString(),
+                  report: intelReport
+                })}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 transition-colors text-white/60 hover:text-white"
+                title="Export as JSON"
+              >
+                <FileJson size={14} />
+              </button>
+              <button 
+                onClick={() => exportToCSV(`intel_report_${targetId}`, ['Target', 'Timestamp', 'Report'], [[targetId, new Date().toISOString(), intelReport]])}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 transition-colors text-white/60 hover:text-white"
+                title="Export as CSV"
+              >
+                <Table size={14} />
               </button>
               <button 
                 onClick={() => exportToPDF('intel-report-content', `intel_report_${targetId}`)}

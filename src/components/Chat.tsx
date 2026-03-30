@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
-import { Send, Bot, User, Loader2, Volume2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Volume2, Download, FileText, FileJson, Table, Trash2 } from 'lucide-react';
 import { models, textToSpeech } from '../lib/gemini';
 import { cn } from '../lib/utils';
+import { exportToText, exportToJSON, exportToCSV } from '../lib/export';
 
 interface Message {
   role: 'user' | 'model';
@@ -89,6 +90,33 @@ export function Chat() {
     }
   };
 
+  const clearChat = () => {
+    setMessages([]);
+    chatRef.current = ai.chats.create({
+      model: models.pro,
+      config: {
+        systemInstruction: "You are the Aegis OSINT Chatbot. You assist in cross-correlating data, generating dorks, and analyzing underground forum activity. Be concise, technical, and professional.",
+      },
+    });
+  };
+
+  const exportChat = (format: 'txt' | 'json' | 'csv') => {
+    if (messages.length === 0) return;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `aegis_chat_export_${timestamp}`;
+
+    if (format === 'txt') {
+      const content = messages.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
+      exportToText(filename, content);
+    } else if (format === 'json') {
+      exportToJSON(filename, { messages, timestamp });
+    } else if (format === 'csv') {
+      const headers = ['Role', 'Text'];
+      const rows = messages.map(m => [m.role, m.text]);
+      exportToCSV(filename, headers, rows);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#151619] border border-[#141414] rounded-lg overflow-hidden shadow-2xl">
       <div className="p-4 border-b border-[#141414] bg-[#1a1b1e] flex items-center justify-between">
@@ -97,6 +125,38 @@ export function Chat() {
           <span className="text-xs font-mono uppercase tracking-widest text-white/70">Intelligence Terminal</span>
         </div>
         <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <div className="flex items-center gap-1 mr-2 border-r border-[#141414] pr-2">
+              <button 
+                onClick={() => exportChat('txt')}
+                className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
+                title="Export as TXT"
+              >
+                <FileText size={14} />
+              </button>
+              <button 
+                onClick={() => exportChat('json')}
+                className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
+                title="Export as JSON"
+              >
+                <FileJson size={14} />
+              </button>
+              <button 
+                onClick={() => exportChat('csv')}
+                className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
+                title="Export as CSV"
+              >
+                <Table size={14} />
+              </button>
+              <button 
+                onClick={clearChat}
+                className="p-1.5 hover:bg-red-500/10 rounded text-white/40 hover:text-red-500 transition-colors ml-1"
+                title="Clear Chat"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          )}
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <span className="text-[10px] font-mono text-green-500 uppercase">System Online</span>
         </div>

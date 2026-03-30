@@ -1,0 +1,8 @@
+{
+  "name": "Aegis OSINT Cross-Correlator",
+  "description": "A sophisticated intelligence module for cross-correlating data from OSRS, Runehall, web archives, and underground sources using Gemini AI.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

@@ -357,15 +357,10 @@ export function CorrelationEngine() {
                 <p className="text-[10px] text-white/40 font-mono">RUNEHALL EXPLOIT ANALYZER</p>
               </div>
             </div>
-            {vulnAnalysis && (
-              <button 
-                onClick={() => { setVulnAnalysis(null); setScenario(''); }}
-                className="p-2 hover:bg-red-500/10 rounded text-white/20 hover:text-red-500 transition-colors"
-                title="Clear Analysis"
-              >
-                <Trash2 size={14} />
-              </button>
-            )}
+            <div className="flex items-center gap-2 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[8px] font-mono text-green-500 uppercase font-bold">Payload Engine Ready</span>
+            </div>
           </div>
 
           <div className="space-y-4">

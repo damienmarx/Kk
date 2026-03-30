@@ -3,14 +3,15 @@ import { Chat } from './components/Chat';
 import { CorrelationEngine } from './components/CorrelationEngine';
 import { CaseManagement } from './components/CaseManagement';
 import { HolographicView } from './components/HolographicView';
-import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2, Box } from 'lucide-react';
+import { PayloadConsole } from './components/PayloadConsole';
+import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2, Box, Zap } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useTracking } from './lib/tracking';
 import { useCases } from './lib/cases';
 import { Toaster, toast } from 'sonner';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases' | 'holographic'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases' | 'holographic' | 'payloads'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
@@ -153,6 +154,7 @@ export default function App() {
               { id: 'dashboard', icon: Activity, label: 'Intel Dashboard' },
               { id: 'holographic', icon: Box, label: 'Holographic View' },
               { id: 'chat', icon: Terminal, label: 'AI Command' },
+              { id: 'payloads', icon: Zap, label: 'Payload Console' },
               { id: 'cases', icon: Briefcase, label: 'Case Files' },
             ].map((item) => (
               <button
@@ -259,6 +261,8 @@ export default function App() {
               <div className="p-6 h-full">
                 <Chat />
               </div>
+            ) : activeTab === 'payloads' ? (
+              <PayloadConsole />
             ) : (
               <CaseManagement />
             )}

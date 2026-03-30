@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { exportToText, exportToJSON, exportToCSV } from '../lib/export';
 import { executePayload, PRESET_PAYLOADS } from '../lib/payloads';
 import { toast } from 'sonner';
+import { getLocalIntelligence, isQuotaExhaustedError } from '../lib/heuristics';
 
 interface Message {
   role: 'user' | 'model';
@@ -150,8 +151,14 @@ export function Chat() {
       
       setMessages(prev => [...prev, { role: 'model', text: response.text || "No response." }]);
     } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, { role: 'model', text: "Error: Failed to process intelligence request." }]);
+      if (isQuotaExhaustedError(error)) {
+        console.warn("Gemini API Quota Exhausted in Chat. Falling back to Aegis Offline Heuristics.");
+        const fallbackFinding = getLocalIntelligence(userMsg);
+        setMessages(prev => [...prev, { role: 'model', text: `[OFFLINE HEURISTICS ACTIVE] ${fallbackFinding}` }]);
+      } else {
+        console.error(error);
+        setMessages(prev => [...prev, { role: 'model', text: "Error: Failed to process intelligence request." }]);
+      }
     } finally {
       setIsLoading(false);
     }

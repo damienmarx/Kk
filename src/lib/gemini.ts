@@ -87,19 +87,27 @@ export async function generateIntel(prompt: string, model: string = models.flash
 }
 
 export async function analyzeImage(base64Data: string, prompt: string) {
-  const response = await ai.models.generateContent({
-    model: models.pro,
-    contents: {
-      parts: [
-        { inlineData: { data: base64Data, mimeType: "image/jpeg" } },
-        { text: prompt },
-      ],
-    },
-    config: {
-      safetySettings,
-    },
-  });
-  return response.text;
+  try {
+    const response = await ai.models.generateContent({
+      model: models.pro,
+      contents: {
+        parts: [
+          { inlineData: { data: base64Data, mimeType: "image/jpeg" } },
+          { text: prompt },
+        ],
+      },
+      config: {
+        safetySettings,
+      },
+    });
+    return response.text;
+  } catch (error) {
+    if (isQuotaExhaustedError(error)) {
+      console.warn("Gemini API Quota Exhausted during image analysis. Falling back to Aegis Offline Heuristics.");
+      return `[OFFLINE HEURISTICS ACTIVE] Image analysis unavailable due to quota limits. Heuristics suggest potential target activity in the provided visual context.`;
+    }
+    throw error;
+  }
 }
 
 export async function textToSpeech(text: string) {
@@ -119,13 +127,22 @@ export async function textToSpeech(text: string) {
 }
 
 export async function complexReasoning(prompt: string) {
-  const response = await ai.models.generateContent({
-    model: models.pro,
-    contents: prompt,
-    config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-      safetySettings,
-    },
-  });
-  return response.text;
+  try {
+    const response = await ai.models.generateContent({
+      model: models.pro,
+      contents: prompt,
+      config: {
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        safetySettings,
+      },
+    });
+    return response.text;
+  } catch (error) {
+    if (isQuotaExhaustedError(error)) {
+      console.warn("Gemini API Quota Exhausted during complex reasoning. Falling back to Aegis Offline Heuristics.");
+      const fallbackFinding = getLocalIntelligence("Complex Reasoning Target");
+      return `[OFFLINE HEURISTICS ACTIVE] ${fallbackFinding}`;
+    }
+    throw error;
+  }
 }

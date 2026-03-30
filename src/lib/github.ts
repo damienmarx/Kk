@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { getLocalIntelligence, isQuotaExhaustedError } from "./heuristics";
 
 const apiKey = process.env.GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
@@ -16,6 +17,11 @@ export async function analyzeGithubRepo(repoUrl: string) {
     });
     return response.text;
   } catch (error) {
+    if (isQuotaExhaustedError(error)) {
+      console.warn("Gemini API Quota Exhausted during GitHub analysis. Falling back to Aegis Offline Heuristics.");
+      const fallbackFinding = getLocalIntelligence(repoUrl);
+      return `[OFFLINE HEURISTICS ACTIVE] ${fallbackFinding}`;
+    }
     console.error("Failed to analyze GitHub repository:", error);
     return "Error: Could not retrieve GitHub context.";
   }

@@ -38,6 +38,23 @@ export function Chat() {
     }
   }, [messages]);
 
+  // Load draft on mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('aegis_chat_draft');
+    if (savedDraft) {
+      setInput(savedDraft);
+    }
+  }, []);
+
+  // Save draft on change
+  useEffect(() => {
+    if (input) {
+      localStorage.setItem('aegis_chat_draft', input);
+    } else {
+      localStorage.removeItem('aegis_chat_draft');
+    }
+  }, [input]);
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 

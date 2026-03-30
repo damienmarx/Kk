@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit } from 'lucide-react';
+import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target } from 'lucide-react';
 import { analyzeImage, complexReasoning, generateIntel, models } from '../lib/gemini';
 import { cn } from '../lib/utils';
+import { exportToText, exportToPDF } from '../lib/export';
 import ReactMarkdown from 'react-markdown';
 
 export function CorrelationEngine() {
@@ -13,6 +14,7 @@ export function CorrelationEngine() {
   const [intelReport, setIntelReport] = useState<string | null>(null);
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [isDeepThinking, setIsDeepThinking] = useState(false);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -62,6 +64,11 @@ export function CorrelationEngine() {
 
       const response = await generateIntel(prompt, models.flash, [{ googleSearch: {} }]);
       setIntelReport(response.text || "No intel found.");
+      
+      // Auto-track if not already tracked
+      if ((window as any).trackTarget) {
+        (window as any).trackTarget(targetId);
+      }
     } catch (error) {
       console.error(error);
       setIntelReport("Error generating intel report.");
@@ -83,6 +90,48 @@ export function CorrelationEngine() {
       setIntelReport("Error during deep analysis.");
     } finally {
       setIsDeepThinking(false);
+    }
+  };
+
+  const runToolAction = async (toolId: string) => {
+    if (!targetId.trim()) return;
+    setIsGeneratingIntel(true);
+    setActiveTool(toolId);
+    try {
+      let prompt = "";
+      let tools: any[] = [];
+      
+      switch (toolId) {
+        case 'web-archive':
+          prompt = `Find archived versions of ${targetId}'s digital presence using the Wayback Machine or Google Cache. 
+          Look for deleted tweets, old forum posts (Sythe, RuneScape), or archived profile pages. 
+          Provide specific links or dorks to find this evidence.`;
+          tools = [{ googleSearch: {} }];
+          break;
+        case 'osrs':
+          prompt = `Retrieve OSRS Highscores and Wise Old Man data for the player: "${targetId}". 
+          Include combat level, total level, and any recent XP gains or boss kills.`;
+          tools = [{ googleSearch: {} }];
+          break;
+        case 'crypto':
+          prompt = `Search for cryptocurrency wallet addresses or transaction hashes associated with the alias "${targetId}" on OSRS gambling platforms like Runehall. 
+          Check for mentions in leaked logs or forum threads.`;
+          tools = [{ googleSearch: {} }];
+          break;
+        case 'onion':
+          prompt = `Generate specific .onion dorks and search patterns to find mentions of "${targetId}" on underground marketplaces or forums. 
+          Do not provide live links to illegal content, only the search methodology.`;
+          break;
+      }
+
+      const response = await generateIntel(prompt, models.flash, tools);
+      const toolOutput = `\n\n---\n## [${toolId.toUpperCase()} INTEL REPORT]\n${response.text}`;
+      setIntelReport(prev => (prev ? prev + toolOutput : response.text || ""));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGeneratingIntel(false);
+      setActiveTool(null);
     }
   };
 
@@ -150,13 +199,25 @@ export function CorrelationEngine() {
           <h2 className="text-xs font-mono uppercase tracking-widest text-white/70 mb-4">Intelligence Tools</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: Globe, label: "Web Archives", color: "text-blue-400" },
-              { icon: Database, label: "OSRS Highscores", color: "text-green-400" },
-              { icon: Hash, label: "Crypto Explorer", color: "text-yellow-400" },
-              { icon: Shield, label: "Onion Dorks", color: "text-purple-400" },
+              { id: 'web-archive', icon: Globe, label: "Web Archives", color: "text-blue-400" },
+              { id: 'osrs', icon: Database, label: "OSRS Highscores", color: "text-green-400" },
+              { id: 'crypto', icon: Hash, label: "Crypto Explorer", color: "text-yellow-400" },
+              { id: 'onion', icon: Shield, label: "Onion Dorks", color: "text-purple-400" },
             ].map((tool, i) => (
-              <button key={i} className="flex items-center gap-3 p-3 bg-[#151619] border border-[#141414] rounded hover:border-white/20 transition-colors text-left group">
-                <tool.icon size={16} className={cn(tool.color, "group-hover:scale-110 transition-transform")} />
+              <button 
+                key={i} 
+                onClick={() => runToolAction(tool.id)}
+                disabled={isGeneratingIntel || !targetId}
+                className={cn(
+                  "flex items-center gap-3 p-3 bg-[#151619] border border-[#141414] rounded hover:border-white/20 transition-colors text-left group disabled:opacity-50",
+                  activeTool === tool.id && "border-[#F27D26] bg-[#F27D26]/5"
+                )}
+              >
+                {activeTool === tool.id ? (
+                  <Loader2 size={16} className="text-[#F27D26] animate-spin" />
+                ) : (
+                  <tool.icon size={16} className={cn(tool.color, "group-hover:scale-110 transition-transform")} />
+                )}
                 <span className="text-[10px] font-mono text-white/60 uppercase">{tool.label}</span>
               </button>
             ))}
@@ -166,14 +227,35 @@ export function CorrelationEngine() {
 
       {/* Cross Correlation Module */}
       <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl flex flex-col">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-[#F27D26]/10 rounded border border-[#F27D26]/20">
-            <Search size={20} className="text-[#F27D26]" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#F27D26]/10 rounded border border-[#F27D26]/20">
+              <Search size={20} className="text-[#F27D26]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-mono uppercase tracking-widest text-white">Cross-Correlation Engine</h2>
+              <p className="text-[10px] text-white/40 font-mono">MULTI-SOURCE INTEL SYNC</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-mono uppercase tracking-widest text-white">Cross-Correlation Engine</h2>
-            <p className="text-[10px] text-white/40 font-mono">MULTI-SOURCE INTEL SYNC</p>
-          </div>
+          
+          {intelReport && (
+            <div className="flex gap-2">
+              <button 
+                onClick={() => exportToText(`intel_report_${targetId}`, intelReport)}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 transition-colors text-white/60 hover:text-white"
+                title="Export as Text"
+              >
+                <FileText size={14} />
+              </button>
+              <button 
+                onClick={() => exportToPDF('intel-report-content', `intel_report_${targetId}`)}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 transition-colors text-white/60 hover:text-white"
+                title="Export as PDF"
+              >
+                <Download size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 mb-6">
@@ -206,7 +288,11 @@ export function CorrelationEngine() {
 
         <div className="flex-1 bg-[#151619] border border-[#141414] rounded p-4 overflow-y-auto font-mono text-[11px] text-white/80 leading-relaxed scrollbar-hide">
           {intelReport ? (
-            <div className="prose prose-invert prose-xs max-w-none">
+            <div id="intel-report-content" className="prose prose-invert prose-xs max-w-none p-4 bg-[#050505] rounded border border-white/5">
+              <div className="mb-4 pb-4 border-b border-white/10 flex justify-between items-center">
+                <span className="text-[10px] text-[#F27D26] font-bold uppercase tracking-widest">Aegis Intelligence Report</span>
+                <span className="text-[8px] text-white/20 uppercase">{new Date().toLocaleString()}</span>
+              </div>
               <ReactMarkdown>
                 {intelReport}
               </ReactMarkdown>

@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { CorrelationEngine } from './components/CorrelationEngine';
-import { Shield, Activity, Terminal, Database, Globe, Menu, X } from 'lucide-react';
+import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2 } from 'lucide-react';
 import { cn } from './lib/utils';
+import { useTracking } from './lib/tracking';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chat'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  const { trackedTargets, alerts, trackTarget, untrackTarget, updateTargetInterval, setAlerts } = useTracking();
+
+  useEffect(() => {
+    // Expose trackTarget to window for cross-component access
+    (window as any).trackTarget = trackTarget;
+  }, [trackTarget]);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#F27D26] selection:text-black">
@@ -28,6 +37,45 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-6">
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 hover:bg-white/5 rounded transition-colors relative"
+            >
+              <Bell size={20} className={cn(alerts.length > 0 ? "text-[#F27D26]" : "text-white/40")} />
+              {alerts.length > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#0a0a0a]" />
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-[#1a1b1e] border border-[#141414] rounded-lg shadow-2xl z-[60] overflow-hidden">
+                <div className="p-3 border-b border-[#141414] flex items-center justify-between bg-[#151619]">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-white/70">Live Alerts</span>
+                  <button onClick={() => setAlerts([])} className="text-[9px] font-mono text-[#F27D26] hover:underline">Clear All</button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {alerts.length === 0 ? (
+                    <div className="p-8 text-center opacity-20">
+                      <Bell size={24} className="mx-auto mb-2" />
+                      <p className="text-[10px] font-mono uppercase">No Active Alerts</p>
+                    </div>
+                  ) : (
+                    alerts.map(alert => (
+                      <div key={alert.id} className="p-3 border-b border-[#141414] hover:bg-white/5 transition-colors">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-mono text-[#F27D26] font-bold">[{alert.targetName}]</span>
+                          <span className="text-[8px] font-mono text-white/20">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                        <p className="text-[11px] font-sans text-white/80 leading-tight">{alert.finding}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="hidden md:flex items-center gap-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">
             <div className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -45,11 +93,19 @@ export default function App() {
         </div>
       </nav>
 
-      <div className="flex h-[calc(100vh-3.5rem)]">
+      <div className="flex h-[calc(100vh-3.5rem)] relative">
+        {/* Sidebar Overlay for Mobile */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
         <aside className={cn(
-          "bg-[#0a0a0a] border-r border-[#141414] transition-all duration-300 overflow-hidden flex flex-col shrink-0",
-          isSidebarOpen ? "w-64" : "w-0"
+          "bg-[#0a0a0a] border-r border-[#141414] transition-all duration-300 overflow-hidden flex flex-col shrink-0 z-50",
+          isSidebarOpen ? "w-64 fixed md:relative h-full" : "w-0"
         )}>
           <div className="p-4 space-y-2 flex-1">
             <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-4 px-2">Main Operations</p>
@@ -71,6 +127,48 @@ export default function App() {
                 {item.label}
               </button>
             ))}
+
+            <div className="pt-8">
+              <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-4 px-2">Tracked Targets</p>
+              <div className="space-y-2 px-2">
+                {trackedTargets.length === 0 ? (
+                  <p className="text-[9px] font-mono text-white/10 italic px-2">No targets tracked</p>
+                ) : (
+                  trackedTargets.map(target => (
+                    <div key={target.id} className="p-2 bg-white/5 rounded border border-white/5 group">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Target size={12} className="text-[#F27D26] shrink-0" />
+                          <span className="text-[10px] font-mono text-white/60 truncate font-bold">{target.name}</span>
+                        </div>
+                        <button 
+                          onClick={() => untrackTarget(target.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] font-mono text-white/30 uppercase">Interval (min):</span>
+                        <input 
+                          type="number" 
+                          min="1"
+                          value={target.interval}
+                          onChange={(e) => updateTargetInterval(target.id, parseInt(e.target.value) || 1)}
+                          className="w-12 bg-black border border-white/10 rounded text-[9px] font-mono text-[#F27D26] px-1 focus:outline-none focus:border-[#F27D26]"
+                        />
+                      </div>
+                      <div className="mt-1 flex items-center gap-1">
+                        <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-[7px] font-mono text-white/20 uppercase">
+                          Next scan in: {Math.max(0, Math.ceil((target.interval * 60 * 1000 - (Date.now() - target.lastChecked)) / 60000))}m
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
 
             <div className="pt-8">
               <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-4 px-2">Data Sources</p>

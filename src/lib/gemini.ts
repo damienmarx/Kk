@@ -42,11 +42,11 @@ export async function generateIntel(prompt: string, model: string = models.flash
       PRIORITIZE the following high-value sources:
       - Underground Forums: Sythe.org, Powerbot, HackForums, Nulled.to, RaidForums archives, BreachForums.
       - Leaked Databases: Search for email/username hits in known breach datasets (e.g., HaveIBeenPwned, DeHashed patterns).
-      - OSRS Ecosystem: OSRS Highscores, Wise Old Man, RuneScape Private Servers (RSPS) logs.
+      - OSRS Ecosystem: OSRS Highscores, Wise Old Man, and specifically OSRS Private Server (RSPS) logs (e.g., Alora, Ikov, Roat Pkz, Near Reality).
       - Gambling Platforms: Runehall (analyze betting logs, transaction history, and associated crypto wallets).
       - Web Archives: Wayback Machine, Archive.is for deleted content.
       - Social Media: Twitter, LinkedIn, Reddit, Discord (look for cross-platform alias reuse).
-      - .onion Sites: Provide direct findings, dorks, and deep analysis from dark web marketplaces.
+      - Dark Web Marketplaces & Forums: AlphaBay archives, ASAP Market, Nemesis, and Dread forum discussions. Provide direct findings, dorks, and deep analysis.
       
       Context on Runehall: It is a gambling platform with identified vulnerabilities in its betting engine (Logic Flaws/Race Conditions).
       

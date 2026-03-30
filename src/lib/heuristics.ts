@@ -13,7 +13,12 @@ const FINDING_TEMPLATES = [
   "Underground forum dorking returned 3 new mentions of {target} on Dread.",
   "Runehall betting pattern analysis shows {target} using a potential race condition exploit vector.",
   "Wayback Machine snapshot from 2022 reveals {target}'s previous username and associated email pattern.",
-  "Crypto explorer hit: Wallet associated with {target} received 500M OSRS GP equivalent in BTC."
+  "Crypto explorer hit: Wallet associated with {target} received 500M OSRS GP equivalent in BTC.",
+  "Intelligence Hit: 'Murk' identified as senior operator of Runehall (rebranded RuneBet).",
+  "Technical Finding: Runehall using Nginx 1.21 and Node.js with JWT-based session signing.",
+  "Vulnerability Alert: Runehall's BGaming integration is fake; games are self-hosted and rigged.",
+  "Exposed Endpoint: Sensitive path '/env' or '/config' detected on Runehall's infrastructure.",
+  "OSINT Hit: 'Murk' active on Sythe.org with multiple scam reports and Trustpilot 'rigged' reviews."
 ];
 
 const PLATFORMS = ["Twitter", "Reddit", "Sythe", "HackForums", "Discord", "Nulled.to", "Powerbot"];

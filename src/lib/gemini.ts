@@ -50,7 +50,12 @@ export async function generateIntel(prompt: string, model: string = models.flash
         - Social Media: Twitter, LinkedIn, Reddit, Discord (look for cross-platform alias reuse).
         - Dark Web Marketplaces & Forums: AlphaBay archives, ASAP Market, Nemesis, and Dread forum discussions. Provide direct findings, dorks, and deep analysis.
         
-        Context on Runehall: It is a gambling platform with identified vulnerabilities in its betting engine (Logic Flaws/Race Conditions).
+        Context on Runehall: It is a gambling platform with identified vulnerabilities in its betting engine (Logic Flaws/Race Conditions). 
+        Operator: 'Murk' (senior operator, previously ran RuneBet). 
+        Tech Stack: Nginx 1.21, Node.js, PostgreSQL, Redis, Cloudflare WAF. 
+        Authentication: JWT-based sessions signed with server's own key. 
+        Games: Fake BGaming integration; self-hosted/rigged. 
+        Exposed Endpoints: /env, /config, /db, /git, /admin, .well-known/, w.tar.gz.
         
         When analyzing, look for:
         1. Usernames/Aliases across platforms (Cross-Correlation).

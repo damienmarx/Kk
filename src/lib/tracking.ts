@@ -17,8 +17,22 @@ export interface Alert {
 }
 
 export function useTracking() {
-  const [trackedTargets, setTrackedTargets] = useState<TrackedTarget[]>([]);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [trackedTargets, setTrackedTargets] = useState<TrackedTarget[]>(() => {
+    const saved = localStorage.getItem('aegis_tracked_targets');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [alerts, setAlerts] = useState<Alert[]>(() => {
+    const saved = localStorage.getItem('aegis_alerts');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('aegis_tracked_targets', JSON.stringify(trackedTargets));
+  }, [trackedTargets]);
+
+  useEffect(() => {
+    localStorage.setItem('aegis_alerts', JSON.stringify(alerts));
+  }, [alerts]);
 
   const trackTarget = (name: string, interval: number = 5) => {
     const existing = trackedTargets.find(t => t.name === name);

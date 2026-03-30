@@ -12,7 +12,10 @@ interface Message {
 }
 
 export function Chat() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = localStorage.getItem('aegis_chat_messages');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -21,6 +24,10 @@ export function Chat() {
   const apiKey = process.env.GEMINI_API_KEY || "";
   const ai = new GoogleGenAI({ apiKey });
   const chatRef = useRef<any>(null);
+
+  useEffect(() => {
+    localStorage.setItem('aegis_chat_messages', JSON.stringify(messages));
+  }, [messages]);
 
   useEffect(() => {
     if (!chatRef.current) {

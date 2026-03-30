@@ -22,6 +22,7 @@ export default function App() {
       if (activeCase && targetId) {
         addTargetToCase(activeCase.id, targetId);
       }
+      return targetId;
     };
   }, [trackTarget, activeCase, addTargetToCase]);
 

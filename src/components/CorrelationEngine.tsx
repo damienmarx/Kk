@@ -1,25 +1,68 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity, Mail, Share2, Users } from 'lucide-react';
+import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity, Mail, Share2, Users, Briefcase, Trash2 } from 'lucide-react';
 import { analyzeImage, complexReasoning, generateIntel, models } from '../lib/gemini';
 import { cn } from '../lib/utils';
 import { exportToText, exportToPDF, exportToJSON, exportToCSV } from '../lib/export';
 import ReactMarkdown from 'react-markdown';
+import { useCases } from '../lib/cases';
 
 export function CorrelationEngine() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<string | null>(() => localStorage.getItem('aegis_ce_analysis'));
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [targetId, setTargetId] = useState('');
-  const [intelReport, setIntelReport] = useState<string | null>(null);
+  const [targetId, setTargetId] = useState(() => localStorage.getItem('aegis_ce_target_id') || '');
+  const [intelReport, setIntelReport] = useState<string | null>(() => localStorage.getItem('aegis_ce_intel_report'));
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [isDeepThinking, setIsDeepThinking] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
-  const [scenario, setScenario] = useState('');
-  const [vulnAnalysis, setVulnAnalysis] = useState<string | null>(null);
+  const [scenario, setScenario] = useState(() => localStorage.getItem('aegis_ce_scenario') || '');
+  const [vulnAnalysis, setVulnAnalysis] = useState<string | null>(() => localStorage.getItem('aegis_ce_vuln_analysis'));
   const [isAnalyzingVuln, setIsAnalyzingVuln] = useState(false);
-  const [emailData, setEmailData] = useState('');
+  const [emailData, setEmailData] = useState(() => localStorage.getItem('aegis_ce_email_data') || '');
   const [isAnalyzingEmail, setIsAnalyzingEmail] = useState(false);
+
+  const { activeCase, addTargetToCase } = useCases();
+
+  const linkToActiveCase = () => {
+    if (activeCase && targetId.trim()) {
+      // We need to track the target first to get an ID
+      if ((window as any).trackTarget) {
+        const id = (window as any).trackTarget(targetId);
+        if (id) {
+          addTargetToCase(activeCase.id, id);
+        }
+      }
+    }
+  };
+
+  // Persistence Effects
+  React.useEffect(() => {
+    if (analysis) localStorage.setItem('aegis_ce_analysis', analysis);
+    else localStorage.removeItem('aegis_ce_analysis');
+  }, [analysis]);
+
+  React.useEffect(() => {
+    localStorage.setItem('aegis_ce_target_id', targetId);
+  }, [targetId]);
+
+  React.useEffect(() => {
+    if (intelReport) localStorage.setItem('aegis_ce_intel_report', intelReport);
+    else localStorage.removeItem('aegis_ce_intel_report');
+  }, [intelReport]);
+
+  React.useEffect(() => {
+    localStorage.setItem('aegis_ce_scenario', scenario);
+  }, [scenario]);
+
+  React.useEffect(() => {
+    if (vulnAnalysis) localStorage.setItem('aegis_ce_vuln_analysis', vulnAnalysis);
+    else localStorage.removeItem('aegis_ce_vuln_analysis');
+  }, [vulnAnalysis]);
+
+  React.useEffect(() => {
+    localStorage.setItem('aegis_ce_email_data', emailData);
+  }, [emailData]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -204,14 +247,25 @@ export function CorrelationEngine() {
       {/* OCR & Upload Module */}
       <div className="space-y-6">
         <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-[#F27D26]/10 rounded border border-[#F27D26]/20">
-              <Upload size={20} className="text-[#F27D26]" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-[#F27D26]/10 rounded border border-[#F27D26]/20">
+                <Upload size={20} className="text-[#F27D26]" />
+              </div>
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-widest text-white">Evidence Upload</h2>
+                <p className="text-[10px] text-white/40 font-mono">OCR / IMAGE ANALYSIS MODULE</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-mono uppercase tracking-widest text-white">Evidence Upload</h2>
-              <p className="text-[10px] text-white/40 font-mono">OCR / IMAGE ANALYSIS MODULE</p>
-            </div>
+            {analysis && (
+              <button 
+                onClick={() => { setAnalysis(null); setPreview(null); setFile(null); }}
+                className="p-2 hover:bg-red-500/10 rounded text-white/20 hover:text-red-500 transition-colors"
+                title="Clear Analysis"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
           {/* ... existing upload code ... */}
 
@@ -261,14 +315,25 @@ export function CorrelationEngine() {
 
         {/* Vulnerability Lab */}
         <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-red-500/10 rounded border border-red-500/20">
-              <Activity size={20} className="text-red-500" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-500/10 rounded border border-red-500/20">
+                <Activity size={20} className="text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-widest text-white">Vulnerability Lab</h2>
+                <p className="text-[10px] text-white/40 font-mono">RUNEHALL EXPLOIT ANALYZER</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-mono uppercase tracking-widest text-white">Vulnerability Lab</h2>
-              <p className="text-[10px] text-white/40 font-mono">RUNEHALL EXPLOIT ANALYZER</p>
-            </div>
+            {vulnAnalysis && (
+              <button 
+                onClick={() => { setVulnAnalysis(null); setScenario(''); }}
+                className="p-2 hover:bg-red-500/10 rounded text-white/20 hover:text-red-500 transition-colors"
+                title="Clear Analysis"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -305,14 +370,25 @@ export function CorrelationEngine() {
 
         {/* Email Analysis Lab */}
         <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-500/10 rounded border border-blue-500/20">
-              <Mail size={20} className="text-blue-500" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded border border-blue-500/20">
+                <Mail size={20} className="text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-widest text-white">Email Intelligence</h2>
+                <p className="text-[10px] text-white/40 font-mono">HEADER & CONTENT ANALYZER</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-mono uppercase tracking-widest text-white">Email Intelligence</h2>
-              <p className="text-[10px] text-white/40 font-mono">HEADER & CONTENT ANALYZER</p>
-            </div>
+            {emailData && (
+              <button 
+                onClick={() => setEmailData('')}
+                className="p-2 hover:bg-red-500/10 rounded text-white/20 hover:text-red-500 transition-colors"
+                title="Clear Data"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -381,6 +457,22 @@ export function CorrelationEngine() {
           
           {intelReport && (
             <div className="flex gap-2">
+              {activeCase && (
+                <button 
+                  onClick={linkToActiveCase}
+                  className="flex items-center gap-2 px-3 py-1 bg-[#F27D26]/10 border border-[#F27D26]/20 rounded text-[10px] font-mono text-[#F27D26] hover:bg-[#F27D26]/20 transition-colors"
+                >
+                  <Briefcase size={12} />
+                  Link to {activeCase.name}
+                </button>
+              )}
+              <button 
+                onClick={() => { setIntelReport(null); setTargetId(''); }}
+                className="p-2 hover:bg-red-500/10 rounded text-white/20 hover:text-red-500 transition-colors"
+                title="Clear Report"
+              >
+                <Trash2 size={14} />
+              </button>
               <button 
                 onClick={() => exportToText(`intel_report_${targetId}`, intelReport)}
                 className="p-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 transition-colors text-white/60 hover:text-white"

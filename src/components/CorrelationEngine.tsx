@@ -20,7 +20,9 @@ export function CorrelationEngine() {
   const [vulnAnalysis, setVulnAnalysis] = useState<string | null>(() => localStorage.getItem('aegis_ce_vuln_analysis'));
   const [isAnalyzingVuln, setIsAnalyzingVuln] = useState(false);
   const [emailData, setEmailData] = useState(() => localStorage.getItem('aegis_ce_email_data') || '');
+  const [logData, setLogData] = useState(() => localStorage.getItem('aegis_ce_log_data') || '');
   const [isAnalyzingEmail, setIsAnalyzingEmail] = useState(false);
+  const [isAnalyzingLog, setIsAnalyzingLog] = useState(false);
 
   const { activeCase, addTargetToCase } = useCases();
 
@@ -63,6 +65,10 @@ export function CorrelationEngine() {
   React.useEffect(() => {
     localStorage.setItem('aegis_ce_email_data', emailData);
   }, [emailData]);
+
+  React.useEffect(() => {
+    localStorage.setItem('aegis_ce_log_data', logData);
+  }, [logData]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -242,6 +248,32 @@ export function CorrelationEngine() {
     }
   };
 
+  const runLogAnalysis = async () => {
+    if (!logData.trim()) return;
+    setIsAnalyzingLog(true);
+    try {
+      const prompt = `Analyze the following OSINT tool log content for deep insights and correlations:
+      
+      "${logData}"
+      
+      Extract and analyze:
+      1. Subdomains & Domain Relationships
+      2. Crawled URLs & Directory Structures
+      3. Identified Technologies & Infrastructure
+      4. URL Parameters & Potential Attack Vectors
+      5. Hidden connections between discovered assets
+      
+      Provide a structured report with findings and a summary of the target's digital infrastructure.`;
+      
+      const response = await generateIntel(prompt, models.flash, [{ googleSearch: {} }]);
+      setIntelReport(prev => (prev ? prev + `\n\n---\n## [LOG ANALYSIS REPORT]\n${response.text}` : response.text || ""));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzingLog(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
       {/* OCR & Upload Module */}
@@ -405,6 +437,47 @@ export function CorrelationEngine() {
             >
               {isAnalyzingEmail ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
               Analyze Email Intel
+            </button>
+          </div>
+        </div>
+
+        {/* Log Analysis Lab */}
+        <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/10 rounded border border-purple-500/20">
+                <FileText size={20} className="text-purple-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-widest text-white">Log Intelligence</h2>
+                <p className="text-[10px] text-white/40 font-mono">OSINT TOOL LOG ANALYZER</p>
+              </div>
+            </div>
+            {logData && (
+              <button 
+                onClick={() => setLogData('')}
+                className="p-2 hover:bg-red-500/10 rounded text-white/20 hover:text-red-500 transition-colors"
+                title="Clear Data"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <textarea
+              value={logData}
+              onChange={(e) => setLogData(e.target.value)}
+              placeholder="Paste OSINT tool logs (e.g., subdomain enumeration, crawler output)..."
+              className="w-full bg-[#151619] border border-[#141414] rounded p-3 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors font-mono placeholder:text-white/20 min-h-[100px] resize-none"
+            />
+            <button
+              onClick={runLogAnalysis}
+              disabled={isAnalyzingLog || !logData.trim()}
+              className="w-full bg-purple-600 text-white font-mono text-xs py-3 rounded uppercase font-bold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isAnalyzingLog ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Analyze Log Intel
             </button>
           </div>
         </div>

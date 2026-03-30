@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { CorrelationEngine } from './components/CorrelationEngine';
 import { CaseManagement } from './components/CaseManagement';
-import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2 } from 'lucide-react';
+import { HolographicView } from './components/HolographicView';
+import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2, Box } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useTracking } from './lib/tracking';
 import { useCases } from './lib/cases';
 import { Toaster, toast } from 'sonner';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases' | 'holographic'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
@@ -150,6 +151,7 @@ export default function App() {
             <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-4 px-2">Main Operations</p>
             {[
               { id: 'dashboard', icon: Activity, label: 'Intel Dashboard' },
+              { id: 'holographic', icon: Box, label: 'Holographic View' },
               { id: 'chat', icon: Terminal, label: 'AI Command' },
               { id: 'cases', icon: Briefcase, label: 'Case Files' },
             ].map((item) => (
@@ -251,6 +253,8 @@ export default function App() {
           <div className="relative z-10 h-full">
             {activeTab === 'dashboard' ? (
               <CorrelationEngine />
+            ) : activeTab === 'holographic' ? (
+              <HolographicView />
             ) : activeTab === 'chat' ? (
               <div className="p-6 h-full">
                 <Chat />

@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { generateIntel, models } from './gemini';
 import { executePayload, PRESET_PAYLOADS } from './payloads';
 import { toast } from 'sonner';
+import { io } from 'socket.io-client';
+
+// Singleton socket instance
+const socket = io(window.location.origin);
 
 export interface TrackedTarget {
   id: string;
@@ -28,12 +32,53 @@ export function useTracking() {
     return saved ? JSON.parse(saved) : [];
   });
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const isRemoteUpdate = useRef(false);
+
+  // Real-time synchronization
+  useEffect(() => {
+    socket.on("sync:targets", (targets: TrackedTarget[]) => {
+      isRemoteUpdate.current = true;
+      setTrackedTargets(targets);
+      setTimeout(() => { isRemoteUpdate.current = false; }, 100);
+    });
+
+    socket.on("sync:alerts", (newAlerts: Alert[]) => {
+      isRemoteUpdate.current = true;
+      setAlerts(newAlerts);
+      setTimeout(() => { isRemoteUpdate.current = false; }, 100);
+    });
+
+    socket.on("new:alert", (alert: Alert) => {
+      toast.info(`[REMOTE ALERT] ${alert.targetName}`, {
+        description: alert.finding,
+        duration: 5000,
+      });
+      // We don't need to manually update setAlerts here because sync:alerts will follow
+      // or we can just add it to the list if we want it to be even faster
+      setAlerts(prev => {
+        if (prev.find(a => a.id === alert.id)) return prev;
+        return [alert, ...prev].slice(0, 50);
+      });
+    });
+
+    return () => {
+      socket.off("sync:targets");
+      socket.off("sync:alerts");
+      socket.off("new:alert");
+    };
+  }, []);
 
   useEffect(() => {
+    if (!isRemoteUpdate.current) {
+      socket.emit("sync:targets", trackedTargets);
+    }
     localStorage.setItem('aegis_tracked_targets', JSON.stringify(trackedTargets));
   }, [trackedTargets]);
 
   useEffect(() => {
+    if (!isRemoteUpdate.current) {
+      socket.emit("sync:alerts", alerts);
+    }
     localStorage.setItem('aegis_alerts', JSON.stringify(alerts));
   }, [alerts]);
 
@@ -122,6 +167,7 @@ export function useTracking() {
               };
 
               setAlerts(prev => [newAlert, ...prev].slice(0, 50));
+              socket.emit("new:alert", newAlert);
             }
           } catch (error) {
             console.error(`Background scan failed for ${target.name}:`, error);

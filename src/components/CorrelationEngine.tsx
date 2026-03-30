@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity, Mail, Share2, Users, Briefcase, Trash2 } from 'lucide-react';
 import { analyzeImage, complexReasoning, generateIntel, models } from '../lib/gemini';
+import { analyzeGithubRepo } from '../lib/github';
 import { cn } from '../lib/utils';
 import { exportToText, exportToPDF, exportToJSON, exportToCSV } from '../lib/export';
 import ReactMarkdown from 'react-markdown';
@@ -23,6 +24,8 @@ export function CorrelationEngine() {
   const [logData, setLogData] = useState(() => localStorage.getItem('aegis_ce_log_data') || '');
   const [isAnalyzingEmail, setIsAnalyzingEmail] = useState(false);
   const [isAnalyzingLog, setIsAnalyzingLog] = useState(false);
+  const [githubUrl, setGithubUrl] = useState(() => localStorage.getItem('aegis_ce_github_url') || '');
+  const [isAnalyzingGithub, setIsAnalyzingGithub] = useState(false);
 
   const { activeCase, addTargetToCase } = useCases();
 
@@ -69,6 +72,10 @@ export function CorrelationEngine() {
   React.useEffect(() => {
     localStorage.setItem('aegis_ce_log_data', logData);
   }, [logData]);
+
+  React.useEffect(() => {
+    localStorage.setItem('aegis_ce_github_url', githubUrl);
+  }, [githubUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -274,6 +281,19 @@ export function CorrelationEngine() {
     }
   };
 
+  const runGithubAnalysis = async () => {
+    if (!githubUrl.trim()) return;
+    setIsAnalyzingGithub(true);
+    try {
+      const result = await analyzeGithubRepo(githubUrl);
+      setIntelReport(prev => (prev ? prev + `\n\n---\n## [GITHUB REPOSITORY ANALYSIS]\n${result}` : result || ""));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzingGithub(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
       {/* OCR & Upload Module */}
@@ -464,7 +484,7 @@ export function CorrelationEngine() {
               value={logData}
               onChange={(e) => setLogData(e.target.value)}
               placeholder="Paste OSINT tool logs (e.g., subdomain enumeration, crawler output)..."
-              className="w-full bg-[#151619] border border-[#141414] rounded p-3 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors font-mono placeholder:text-white/20 min-h-[100px] resize-none"
+              className="w-full bg-[#151619] border border-[#141414] rounded p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors font-mono placeholder:text-white/20 min-h-[100px] resize-none"
             />
             <button
               onClick={runLogAnalysis}
@@ -473,6 +493,48 @@ export function CorrelationEngine() {
             >
               {isAnalyzingLog ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
               Analyze Log Intel
+            </button>
+          </div>
+        </div>
+
+        {/* GitHub Analysis Lab */}
+        <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gray-500/10 rounded border border-gray-500/20">
+                <Globe size={20} className="text-gray-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-widest text-white">GitHub Intelligence</h2>
+                <p className="text-[10px] text-white/40 font-mono">REPOSITORY ANALYZER</p>
+              </div>
+            </div>
+            {githubUrl && (
+              <button 
+                onClick={() => setGithubUrl('')}
+                className="p-2 hover:bg-red-500/10 rounded text-white/20 hover:text-red-500 transition-colors"
+                title="Clear URL"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+              placeholder="Enter GitHub Repository URL..."
+              className="w-full bg-[#151619] border border-[#141414] rounded p-3 text-sm text-white focus:outline-none focus:border-gray-500 transition-colors font-mono placeholder:text-white/20"
+            />
+            <button
+              onClick={runGithubAnalysis}
+              disabled={isAnalyzingGithub || !githubUrl.trim()}
+              className="w-full bg-gray-700 text-white font-mono text-xs py-3 rounded uppercase font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isAnalyzingGithub ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Analyze Repository
             </button>
           </div>
         </div>

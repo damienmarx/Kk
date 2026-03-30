@@ -2,15 +2,45 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
+  const httpServer = createServer(app);
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Socket.io event handling
+  io.on("connection", (socket) => {
+    console.log(`[AEGIS SOCKET] Client connected: ${socket.id}`);
+    
+    socket.on("sync:targets", (targets) => {
+      socket.broadcast.emit("sync:targets", targets);
+    });
+
+    socket.on("sync:alerts", (alerts) => {
+      socket.broadcast.emit("sync:alerts", alerts);
+    });
+
+    socket.on("new:alert", (alert) => {
+      socket.broadcast.emit("new:alert", alert);
+    });
+
+    socket.on("disconnect", () => {
+      console.log(`[AEGIS SOCKET] Client disconnected: ${socket.id}`);
+    });
+  });
 
   // OSINT Proxy to bypass CORS for target domains
   app.all("/api/proxy", async (req, res) => {
@@ -54,7 +84,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`[AEGIS SERVER] Operational on http://localhost:${PORT}`);
   });
 }

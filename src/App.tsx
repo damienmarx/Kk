@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { CorrelationEngine } from './components/CorrelationEngine';
 import { CaseManagement } from './components/CaseManagement';
-import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase } from 'lucide-react';
+import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useTracking } from './lib/tracking';
 import { useCases } from './lib/cases';
+import { Toaster, toast } from 'sonner';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   
   const { trackedTargets, alerts, trackTarget, untrackTarget, updateTargetInterval, setAlerts } = useTracking();
   const { activeCase, addTargetToCase } = useCases();
@@ -19,15 +21,37 @@ export default function App() {
     // Expose trackTarget to window for cross-component access
     (window as any).trackTarget = (name: string) => {
       const targetId = trackTarget(name);
-      if (activeCase && targetId) {
-        addTargetToCase(activeCase.id, targetId);
+      if (targetId) {
+        setLastAddedId(targetId);
+        toast.success(`Target "${name}" added to tracking`, {
+          description: activeCase ? `Linked to case: ${activeCase.name}` : "Not linked to any case",
+          duration: 4000,
+        });
+        if (activeCase) {
+          addTargetToCase(activeCase.id, targetId);
+        }
+        // Auto-scroll to target in sidebar if it's open
+        setTimeout(() => {
+          const el = document.getElementById(`target-input-${targetId}`);
+          el?.focus();
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
       }
       return targetId;
     };
   }, [trackTarget, activeCase, addTargetToCase]);
 
+  // Clear highlight after a few seconds
+  useEffect(() => {
+    if (lastAddedId) {
+      const timer = setTimeout(() => setLastAddedId(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [lastAddedId]);
+
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#F27D26] selection:text-black">
+      <Toaster position="top-right" theme="dark" richColors />
       {/* Top Navigation Rail */}
       <nav className="h-14 border-b border-[#141414] bg-[#0a0a0a] flex items-center justify-between px-4 sticky top-0 z-50">
         <div className="flex items-center gap-4">
@@ -151,11 +175,17 @@ export default function App() {
                   <p className="text-[9px] font-mono text-white/10 italic px-2">No targets tracked</p>
                 ) : (
                   trackedTargets.map(target => (
-                    <div key={target.id} className="p-2 bg-white/5 rounded border border-white/5 group">
+                    <div 
+                      key={target.id} 
+                      className={cn(
+                        "p-2 bg-white/5 rounded border transition-all group",
+                        lastAddedId === target.id ? "border-[#F27D26] bg-[#F27D26]/10 scale-[1.02]" : "border-white/5"
+                      )}
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 overflow-hidden">
-                          <Target size={12} className="text-[#F27D26] shrink-0" />
-                          <span className="text-[10px] font-mono text-white/60 truncate font-bold">{target.name}</span>
+                          <Target size={12} className={cn("shrink-0", lastAddedId === target.id ? "text-white" : "text-[#F27D26]")} />
+                          <span className={cn("text-[10px] font-mono truncate font-bold", lastAddedId === target.id ? "text-white" : "text-white/60")}>{target.name}</span>
                         </div>
                         <button 
                           onClick={() => untrackTarget(target.id)}
@@ -167,6 +197,7 @@ export default function App() {
                       <div className="flex items-center gap-2">
                         <span className="text-[8px] font-mono text-white/30 uppercase">Interval (min):</span>
                         <input 
+                          id={`target-input-${target.id}`}
                           type="number" 
                           min="1"
                           value={target.interval}

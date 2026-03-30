@@ -169,7 +169,7 @@ export function CorrelationEngine() {
           break;
         case 'onion':
           prompt = `Generate specific .onion dorks and search patterns to find mentions of "${targetId}" on underground marketplaces or forums. 
-          Do not provide live links to illegal content, only the search methodology.`;
+          Provide direct links and specific findings if available.`;
           break;
         case 'social':
           prompt = `Correlate the alias/target "${targetId}" across major social media platforms (Twitter, Instagram, LinkedIn, Reddit). 

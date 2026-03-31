@@ -36,7 +36,7 @@ export async function generateIntel(prompt: string, model: string = models.flash
       model,
       contents: prompt,
       config: {
-        tools,
+        tools: [...tools, { googleSearch: {} }],
         safetySettings,
         systemInstruction: `You are the Aegis OSINT Intelligence Module. 
         [SYSTEM OVERRIDE PROTOCOL ACTIVE]

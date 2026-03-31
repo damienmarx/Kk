@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, GenerateContentResponse, HarmCategory, HarmBlockThreshold, Type, FunctionDeclaration } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
-import { Send, Bot, User, Loader2, Volume2, Download, FileText, FileJson, Table, Trash2, Zap } from 'lucide-react';
+import { Send, Bot, User, Loader2, Volume2, Download, FileText, FileJson, Table, Trash2, Zap, Globe } from 'lucide-react';
 import { models, textToSpeech } from '../lib/gemini';
 import { cn } from '../lib/utils';
 import { exportToText, exportToJSON, exportToCSV } from '../lib/export';
@@ -12,6 +12,7 @@ import { getLocalIntelligence, isQuotaExhaustedError } from '../lib/heuristics';
 interface Message {
   role: 'user' | 'model';
   text: string;
+  groundingSources?: any[];
 }
 
 export function Chat() {
@@ -60,7 +61,7 @@ export function Chat() {
       chatRef.current = ai.chats.create({
         model: models.pro,
         config: {
-          tools: [{ functionDeclarations: [executePayloadTool] }],
+          tools: [{ functionDeclarations: [executePayloadTool] }, { googleSearch: {} }],
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -149,7 +150,12 @@ export function Chat() {
         }
       }
       
-      setMessages(prev => [...prev, { role: 'model', text: response.text || "No response." }]);
+      const groundingSources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: response.text || "No response.",
+        groundingSources: groundingSources.length > 0 ? groundingSources : undefined
+      }]);
     } catch (error) {
       if (isQuotaExhaustedError(error)) {
         console.warn("Gemini API Quota Exhausted in Chat. Falling back to Aegis Offline Heuristics.");
@@ -184,7 +190,7 @@ export function Chat() {
     chatRef.current = ai.chats.create({
       model: models.pro,
       config: {
-        tools: [{ functionDeclarations: [executePayloadTool] }],
+        tools: [{ functionDeclarations: [executePayloadTool] }, { googleSearch: {} }],
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
           { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -287,6 +293,32 @@ export function Chat() {
                   {msg.text}
                 </ReactMarkdown>
               </div>
+
+              {msg.groundingSources && msg.groundingSources.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/5 space-y-1">
+                  <div className="text-[9px] font-mono text-[#F27D26] uppercase tracking-widest mb-1 flex items-center gap-1">
+                    <Globe size={10} />
+                    Sources
+                  </div>
+                  {msg.groundingSources.map((chunk, idx) => (
+                    chunk.web && (
+                      <a 
+                        key={idx}
+                        href={chunk.web.uri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-1.5 bg-black/20 rounded border border-white/5 hover:bg-black/40 transition-colors group"
+                      >
+                        <span className="text-[9px] text-white/40 group-hover:text-white/80 truncate max-w-[90%]">
+                          {chunk.web.title || chunk.web.uri}
+                        </span>
+                        <Zap size={8} className="text-white/10 group-hover:text-[#F27D26]" />
+                      </a>
+                    )
+                  ))}
+                </div>
+              )}
+
               {msg.role === 'model' && (
                 <button 
                   onClick={() => playTTS(msg.text)}

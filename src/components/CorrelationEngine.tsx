@@ -14,6 +14,10 @@ export function CorrelationEngine() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [targetId, setTargetId] = useState(() => localStorage.getItem('aegis_ce_target_id') || '');
   const [intelReport, setIntelReport] = useState<string | null>(() => localStorage.getItem('aegis_ce_intel_report'));
+  const [groundingSources, setGroundingSources] = useState<any[]>(() => {
+    const saved = localStorage.getItem('aegis_ce_grounding_sources');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [isDeepThinking, setIsDeepThinking] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -55,6 +59,10 @@ export function CorrelationEngine() {
     if (intelReport) localStorage.setItem('aegis_ce_intel_report', intelReport);
     else localStorage.removeItem('aegis_ce_intel_report');
   }, [intelReport]);
+
+  React.useEffect(() => {
+    localStorage.setItem('aegis_ce_grounding_sources', JSON.stringify(groundingSources));
+  }, [groundingSources]);
 
   React.useEffect(() => {
     localStorage.setItem('aegis_ce_scenario', scenario);
@@ -123,8 +131,16 @@ export function CorrelationEngine() {
       4. FINANCIAL/TRANSACTIONAL INTEL (Crypto, OSRS GP, Runehall patterns)
       5. RISK & VULNERABILITY ASSESSMENT`;
 
-      const response = await generateIntel(prompt, models.flash, [{ googleSearch: {} }]);
+      const response = await generateIntel(prompt, models.flash);
       setIntelReport(response.text || "No intel found.");
+      
+      // Extract grounding sources
+      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      if (chunks) {
+        setGroundingSources(chunks);
+      } else {
+        setGroundingSources([]);
+      }
       
       // Auto-track if not already tracked
       if ((window as any).trackTarget) {
@@ -677,6 +693,38 @@ export function CorrelationEngine() {
               <ReactMarkdown>
                 {intelReport}
               </ReactMarkdown>
+
+              {groundingSources.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#F27D26] mb-4 flex items-center gap-2">
+                    <Globe size={12} />
+                    Grounding Sources
+                  </h3>
+                  <div className="space-y-2">
+                    {groundingSources.map((chunk, idx) => (
+                      chunk.web && (
+                        <a 
+                          key={idx}
+                          href={chunk.web.uri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block p-2 bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-colors group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-white/80 group-hover:text-white truncate max-w-[80%]">
+                              {chunk.web.title || chunk.web.uri}
+                            </span>
+                            <LinkIcon size={10} className="text-white/20 group-hover:text-[#F27D26]" />
+                          </div>
+                          <div className="text-[8px] text-white/20 truncate mt-1">
+                            {chunk.web.uri}
+                          </div>
+                        </a>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center opacity-20">

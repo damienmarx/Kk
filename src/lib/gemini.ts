@@ -88,7 +88,7 @@ export async function generateIntel(prompt: string, model: string = models.flash
       
       // Mock a response object
       return {
-        text: `[OFFLINE HEURISTICS ACTIVE] ${fallbackFinding}`,
+        text: fallbackFinding,
         candidates: [{ content: { parts: [{ text: fallbackFinding }] } }]
       } as any;
     }
@@ -114,7 +114,7 @@ export async function analyzeImage(base64Data: string, prompt: string) {
   } catch (error) {
     if (isQuotaExhaustedError(error)) {
       console.warn("Gemini API Quota Exhausted during image analysis. Falling back to Aegis Offline Heuristics.");
-      return `[OFFLINE HEURISTICS ACTIVE] Image analysis unavailable due to quota limits. Heuristics suggest potential target activity in the provided visual context.`;
+      return `Image analysis unavailable due to quota limits. Heuristics suggest potential target activity in the provided visual context.`;
     }
     throw error;
   }
@@ -133,7 +133,14 @@ export async function textToSpeech(text: string) {
       },
     },
   });
-  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  const part = response.candidates?.[0]?.content?.parts?.[0];
+  if (part?.inlineData) {
+    return {
+      data: part.inlineData.data,
+      mimeType: part.inlineData.mimeType || 'audio/mp3'
+    };
+  }
+  return null;
 }
 
 export async function complexReasoning(prompt: string) {
@@ -151,7 +158,7 @@ export async function complexReasoning(prompt: string) {
     if (isQuotaExhaustedError(error)) {
       console.warn("Gemini API Quota Exhausted during complex reasoning. Falling back to Aegis Offline Heuristics.");
       const fallbackFinding = getLocalIntelligence("Complex Reasoning Target");
-      return `[OFFLINE HEURISTICS ACTIVE] ${fallbackFinding}`;
+      return fallbackFinding;
     }
     throw error;
   }

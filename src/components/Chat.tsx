@@ -175,11 +175,19 @@ export function Chat() {
   const playTTS = async (text: string) => {
     setIsSpeaking(true);
     try {
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+      const audioResult = await textToSpeech(text);
+      if (audioResult && typeof audioResult === 'object') {
+        const { data, mimeType } = audioResult;
+        const audio = new Audio(`data:${mimeType};base64,${data}`);
         audio.onended = () => setIsSpeaking(false);
-        audio.play();
+        audio.onerror = (e) => {
+          console.error("Audio load error:", e);
+          setIsSpeaking(false);
+        };
+        audio.play().catch(err => {
+          console.error("Audio play error:", err);
+          setIsSpeaking(false);
+        });
       }
     } catch (error) {
       console.error(error);

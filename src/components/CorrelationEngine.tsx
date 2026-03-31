@@ -6,7 +6,7 @@ import { cn } from '../lib/utils';
 import { exportToText, exportToPDF, exportToJSON, exportToCSV } from '../lib/export';
 import ReactMarkdown from 'react-markdown';
 import { useCases } from '../lib/cases';
-import { RUNEHALL_AFFILIATES, RUNEHALL_USER_MAP, RUNEHALL_ENDPOINTS, RUNEHALL_TARGETS } from '../lib/runehall_intel';
+import { RUNEHALL_AFFILIATES, RUNEHALL_USER_MAP, RUNEHALL_ENDPOINTS, RUNEHALL_TARGETS, RUNEHALL_VULNERABILITIES } from '../lib/runehall_intel';
 
 export function CorrelationEngine() {
   const [activeTab, setActiveTab] = useState<'analysis' | 'runehall'>('analysis');
@@ -830,6 +830,29 @@ export function CorrelationEngine() {
                   <div key={i} className="p-2 bg-[#151619] border border-[#141414] rounded flex items-center gap-2 group hover:border-white/10 transition-colors">
                     <div className="w-1 h-1 rounded-full bg-blue-500" />
                     <span className="text-[10px] font-mono text-white/60 truncate">{endpoint}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#1a1b1e] border border-[#141414] rounded-lg p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-red-500/10 rounded border border-red-500/20">
+                  <AlertTriangle size={20} className="text-red-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-mono uppercase tracking-widest text-white">Vulnerability Vectors</h2>
+                  <p className="text-[10px] text-white/40 font-mono">IDENTIFIED EXPLOIT PATHS</p>
+                </div>
+              </div>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto scrollbar-hide">
+                {RUNEHALL_VULNERABILITIES.map((vuln, i) => (
+                  <div key={i} className="p-4 bg-[#151619] border border-red-500/10 rounded space-y-2 group hover:border-red-500/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-red-500 font-bold uppercase tracking-tighter">{vuln.type}</span>
+                      <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest">{vuln.endpoint}</span>
+                    </div>
+                    <p className="text-[10px] font-mono text-white/60 leading-relaxed">{vuln.description}</p>
                   </div>
                 ))}
               </div>

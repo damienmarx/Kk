@@ -60,12 +60,31 @@ export const RUNEHALL_ENDPOINTS = [
   "/api/auth/login",
   "/api/games/bet",
   "/api/payments/process",
+  "/api/v1/internal/debug",
+  "/api/system/tasks",
+  "/api/v1/payload/generate",
+  "/api/debug/exposure",
+  "/api/admin/config",
+  "/api/upload/profile",
   "/env",
   "/config",
   "/db",
   "/git",
   "/admin",
-  "w.tar.gz"
+  "w.tar.gz",
+  "/.git/config",
+  "/phpinfo.php",
+  "/server-status",
+  "/api/v1/user/sessions",
+  "/api/v1/wallet/keys"
+];
+
+export const RUNEHALL_VULNERABILITIES = [
+  { type: "Logic Flaw", endpoint: "/api/games/bet", description: "Race condition in balance verification allowing double-spending." },
+  { type: "RCE", endpoint: "/api/debug/exposure", description: "Reflective PHP execution via action parameter." },
+  { type: "IDOR", endpoint: "/api/admin/config", description: "Unauthorized access to system configuration via sequential IDs." },
+  { type: "Persistence", endpoint: "/api/system/tasks", description: "Cron-job injection via PUT request to task scheduler." },
+  { type: "Data Leak", endpoint: "/.well-known/auth", description: "Exposure of JWT signing keys or session metadata." }
 ];
 
 export const RUNEHALL_TARGETS = [

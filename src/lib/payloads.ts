@@ -189,7 +189,7 @@ export const PRESET_PAYLOADS = [
     description: "Deploying a persistent PHP backdoor across internal debug endpoints for long-term access."
   },
   {
-    name: "Live Persistence: Cron-Job Injection",
+    name: "Runehall Persistence: Cron-Job Injection",
     url: "https://runehall.com/api/system/tasks",
     method: "PUT",
     body: JSON.stringify({ 

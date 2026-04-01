@@ -212,6 +212,32 @@ export function UltimaConsole() {
             </div>
           </div>
 
+          {/* C2 Configuration */}
+          <div className="p-6 border-b border-[#1a1a1a]">
+            <div className="flex items-center gap-2 mb-4">
+              <Server size={16} className="text-[#F27D26]" />
+              <h2 className="text-xs font-bold uppercase tracking-widest">C2 Configuration</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="p-2 bg-white/5 border border-white/10 rounded">
+                <p className="text-[8px] text-white/40 uppercase mb-1">Callback URL:</p>
+                <div className="text-[9px] text-[#F27D26] font-mono break-all">
+                  {process.env.APP_URL || 'https://aegis-osint.run.app'}/api/c2/callback
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 p-2 bg-white/5 border border-white/10 rounded">
+                  <p className="text-[8px] text-white/40 uppercase mb-1">Persistence:</p>
+                  <div className="text-[9px] text-white/80 font-mono">cron_injection</div>
+                </div>
+                <div className="flex-1 p-2 bg-white/5 border border-white/10 rounded">
+                  <p className="text-[8px] text-white/40 uppercase mb-1">Interval:</p>
+                  <div className="text-[9px] text-white/80 font-mono">60s</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Payload Obfuscator */}
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -256,12 +282,21 @@ export function UltimaConsole() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mission Deployment */}
           <div className="p-6 border-b border-[#1a1a1a]">
-            <div className="flex items-center gap-2 mb-4">
-              <Send size={16} className="text-[#F27D26]" />
-              <h2 className="text-xs font-bold uppercase tracking-widest">Mission Deployment</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Send size={16} className="text-[#F27D26]" />
+                <h2 className="text-xs font-bold uppercase tracking-widest">Mission Deployment</h2>
+              </div>
+              <button 
+                onClick={() => deployMission("ULTIMA-TURN: Tier 0 Evasion & C2 Deployment")}
+                className="px-3 py-1 bg-green-500/20 border border-green-500/50 text-green-500 text-[9px] font-bold uppercase rounded hover:bg-green-500/30 transition-all flex items-center gap-1"
+              >
+                <Radio size={10} className="animate-pulse" />
+                Establish Persistence
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {PRESET_PAYLOADS.filter(p => p.name.includes('ULTIMA') || p.name.includes('Nightfury')).map((payload, i) => (
+              {PRESET_PAYLOADS.filter(p => p.name.includes('ULTIMA') || p.name.includes('Nightfury') || p.name.includes('Runehall Persistence')).map((payload, i) => (
                 <button 
                   key={i}
                   onClick={() => deployMission(payload.name)}

@@ -3,6 +3,8 @@
  * Provides fallback intelligence generation when API quota is exhausted.
  */
 
+import { TARGET_PROFILES } from './target_profiles';
+
 const FINDING_TEMPLATES = [
   "Detected alias reuse on {platform} associated with {target}.",
   "New transaction hash identified on Runehall linking {target} to a known high-roller wallet.",
@@ -24,6 +26,20 @@ const FINDING_TEMPLATES = [
 const PLATFORMS = ["Twitter", "Reddit", "Sythe", "HackForums", "Discord", "Nulled.to", "Powerbot"];
 
 export function getLocalIntelligence(target: string): string {
+  const profile = TARGET_PROFILES[target];
+  
+  if (profile && Math.random() > 0.5) {
+    const findings = [
+      `Target alias variant identified: ${profile.variants[Math.floor(Math.random() * profile.variants.length)]}.`,
+      `Potential phone number link: ${profile.phoneNumbers[Math.floor(Math.random() * profile.phoneNumbers.length)]}.`,
+      `IP address hit: ${profile.ipAddresses[Math.floor(Math.random() * profile.ipAddresses.length)]} (associated with ${target}).`,
+      `Email pattern match: ${profile.emails[Math.floor(Math.random() * profile.emails.length)]}.`,
+      `Social media activity on ${Object.keys(profile.socials)[Math.floor(Math.random() * Object.keys(profile.socials).length)]} for ${target}.`,
+      `Intelligence Note: ${profile.notes}`
+    ];
+    return findings[Math.floor(Math.random() * findings.length)];
+  }
+
   const template = FINDING_TEMPLATES[Math.floor(Math.random() * FINDING_TEMPLATES.length)];
   const platform = PLATFORMS[Math.floor(Math.random() * PLATFORMS.length)];
   

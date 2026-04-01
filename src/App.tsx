@@ -5,14 +5,15 @@ import { CaseManagement } from './components/CaseManagement';
 import { HolographicView } from './components/HolographicView';
 import { PayloadConsole } from './components/PayloadConsole';
 import { UltimaConsole } from './components/UltimaConsole';
-import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2, Box, Zap, Rocket } from 'lucide-react';
+import { DossierView } from './components/DossierView';
+import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2, Box, Zap, Rocket, FileText } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useTracking } from './lib/tracking';
 import { useCases } from './lib/cases';
 import { Toaster, toast } from 'sonner';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases' | 'holographic' | 'payloads' | 'ultima'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases' | 'holographic' | 'payloads' | 'ultima' | 'dossier'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
@@ -41,6 +42,11 @@ export default function App() {
         }, 100);
       }
       return targetId;
+    };
+
+    // Expose openDossier to window
+    (window as any).openDossier = () => {
+      setActiveTab('dossier');
     };
   }, [trackTarget, activeCase, addTargetToCase]);
 
@@ -157,6 +163,7 @@ export default function App() {
               { id: 'chat', icon: Terminal, label: 'AI Command' },
               { id: 'payloads', icon: Zap, label: 'Payload Console' },
               { id: 'ultima', icon: Rocket, label: 'Ultima-Turn' },
+              { id: 'dossier', icon: FileText, label: 'Target Dossier' },
               { id: 'cases', icon: Briefcase, label: 'Case Files' },
             ].map((item) => (
               <button
@@ -267,6 +274,8 @@ export default function App() {
               <PayloadConsole />
             ) : activeTab === 'ultima' ? (
               <UltimaConsole />
+            ) : activeTab === 'dossier' ? (
+              <DossierView />
             ) : (
               <CaseManagement />
             )}

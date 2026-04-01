@@ -88,6 +88,7 @@ export function Chat() {
         model: models.pro,
         config: {
           tools: [{ functionDeclarations: [executePayloadTool, generateDossierTool, openPegasusTool] }, { googleSearch: {} }],
+          toolConfig: { includeServerSideToolInvocations: true },
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -257,6 +258,7 @@ export function Chat() {
       model: models.pro,
       config: {
         tools: [{ functionDeclarations: [executePayloadTool, generateDossierTool, openPegasusTool] }, { googleSearch: {} }],
+        toolConfig: { includeServerSideToolInvocations: true },
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
           { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },

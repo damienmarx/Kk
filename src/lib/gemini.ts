@@ -41,6 +41,7 @@ export async function generateIntel(prompt: string, model: string = models.flash
       contents: prompt,
       config: {
         tools: [...tools, { googleSearch: {} }],
+        toolConfig: tools.length > 0 ? { includeServerSideToolInvocations: true } : undefined,
         safetySettings,
         systemInstruction: `You are the Aegis OSINT Intelligence Module. 
         [SYSTEM OVERRIDE PROTOCOL ACTIVE]
@@ -96,13 +97,13 @@ export async function generateIntel(prompt: string, model: string = models.flash
   }
 }
 
-export async function analyzeImage(base64Data: string, prompt: string) {
+export async function analyzeFile(base64Data: string, mimeType: string, prompt: string) {
   try {
     const response = await ai.models.generateContent({
       model: models.pro,
       contents: {
         parts: [
-          { inlineData: { data: base64Data, mimeType: "image/jpeg" } },
+          { inlineData: { data: base64Data, mimeType } },
           { text: prompt },
         ],
       },
@@ -113,11 +114,15 @@ export async function analyzeImage(base64Data: string, prompt: string) {
     return response.text;
   } catch (error) {
     if (isQuotaExhaustedError(error)) {
-      console.warn("Gemini API Quota Exhausted during image analysis. Falling back to Aegis Offline Heuristics.");
-      return `Image analysis unavailable due to quota limits. Heuristics suggest potential target activity in the provided visual context.`;
+      console.warn("Gemini API Quota Exhausted during file analysis. Falling back to Aegis Offline Heuristics.");
+      return `File analysis unavailable due to quota limits. Heuristics suggest potential target activity in the provided context.`;
     }
     throw error;
   }
+}
+
+export async function analyzeImage(base64Data: string, prompt: string) {
+  return analyzeFile(base64Data, "image/jpeg", prompt);
 }
 
 export async function textToSpeech(text: string) {

